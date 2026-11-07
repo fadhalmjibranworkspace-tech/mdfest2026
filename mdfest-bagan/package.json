@@ -1,7 +1,0 @@
-{
-  "name": "mdfest-2026-bagan",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Bagan & hasil lomba MD FEST 2026 (Vercel + Google Sheet)",
-  "scripts": { "dev": "node dev/server.js" }
-}
