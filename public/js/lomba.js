@@ -7,12 +7,27 @@
   function tabsFor() {
     return L.tipe === 'bagan' ? [['bagan', 'Bagan', 'bracket'], ['jadwal', 'Jadwal & hasil', 'cal'], ['tim', 'Peserta', 'users']] : [['grup', L.grup.length === 1 ? 'Urutan' : 'Grup', 'list'], ['tim', 'Peserta', 'users']];
   }
+  function podium(Cc) {
+    const nm = x => (x && x.t ? x.t.nama : '');
+    const w = [[2, nm(Cc.runnerUp)], [1, nm(Cc.champion)], [3, nm(Cc.thirdPlace)]].filter(p => p[1]);
+    if (!Cc.champion || !nm(Cc.champion)) return '';
+    return '<div class="pod">' + w.map(p => '<div class="pd p' + p[0] + '"><span class="md">' + p[0] + '</span><b>' + F.esc(p[1]) + '</b><i><em>' + ['', 'Juara 1', 'Juara 2', 'Juara 3'][p[0]] + '</em></i></div>').join('') + '</div>';
+  }
   function head() {
-    const S = BG.summary(L);
-    $('lh').innerHTML = '<div class="meta"><span class="badge gold">' + F.esc(F.kat(L.kategori)) + '</span><span class="badge">' + (L.tipe === 'bagan' ? 'Bagan eliminasi' : 'Pembagian grup') + '</span>' +
-      (S.lives && S.lives.length ? '<span class="badge live">● Live</span>' : '') + (S.champion ? '<span class="badge ok">Selesai</span>' : '') + '</div>' +
-      '<h1 class="disp gold-t">' + F.esc(L.nama) + '</h1>' +
-      '<div class="hint">' + (L.cfg.subjudul ? F.esc(L.cfg.subjudul) + ' · ' : '') + S.tim + ' peserta' + (L.tipe === 'bagan' ? ' · ' + S.done + ' dari ' + S.total + ' pertandingan selesai' : '') + (L.cfg.lokasi ? ' · ' + F.esc(L.cfg.lokasi) : '') + '</div>';
+    const S = BG.summary(L), t = TH.get(L.kategori), pct = S.total ? Math.round(S.done / S.total * 100) : 0;
+    document.querySelector('.app').style.cssText = TH.vars(L.kategori);
+    document.body.dataset.cat = L.kategori;
+    const meta = [S.tim + ' peserta'];
+    if (L.tipe === 'bagan') meta.push(S.done + '/' + S.total + ' laga');
+    if (L.cfg.lokasi) meta.push(L.cfg.lokasi);
+    $('lh').innerHTML = '<div class="lh-bn" data-bn="' + L.kategori + ',1200,260,.72">' +
+      '<div class="lh-t"><div class="meta"><span class="bd">' + F.esc(F.kat(L.kategori)) + '</span><span class="bd">' + (L.tipe === 'bagan' ? 'Bagan eliminasi' : 'Pembagian grup') + '</span>' +
+      (S.lives && S.lives.length ? '<span class="bd lv"><i></i>Live</span>' : '') + (S.champion ? '<span class="bd ok">Selesai</span>' : '') + '</div>' +
+      '<h1 class="disp">' + F.esc(L.nama) + '</h1>' +
+      '<div class="sub">' + (L.cfg.subjudul ? F.esc(L.cfg.subjudul) + ' · ' : '') + meta.map(F.esc).join(' · ') + '</div>' +
+      (L.tipe === 'bagan' ? '<div class="lh-p"><div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div><span>' + pct + '%</span></div>' : '') + '</div></div>' +
+      (C && C.champion && C.champion.t ? podium(C) : '');
+    TH.paint($('lh'));
     document.title = L.nama + ' · MD FEST 2026';
   }
   function toolbar() {
@@ -27,6 +42,7 @@
       '<div class="zoom noprint"><button class="btn line ib sm" id="zo" type="button" aria-label="Perkecil" data-ic="zout"></button><span class="z">100%</span><button class="btn line ib sm" id="zi" type="button" aria-label="Perbesar" data-ic="zin"></button><button class="btn line ib sm" id="zf" type="button" aria-label="Pas layar" data-ic="fit"></button></div></div>' +
       '<div class="hintbar noprint">' + F.ic('info') + '<span>Geser untuk menjelajah, cubit atau tombol +/− untuk zoom, ketuk pertandingan untuk detail.</span></div>';
     F.icons($('body')); wireBar();
+    $('stage').dataset.pat = L.kategori + ',,.28,1'; TH.paint($('stage'));
     viewer = BGV.mount($('stage'), { onPick: matchSheet }); viewer.render(L);
   }
   function viewGrup() {

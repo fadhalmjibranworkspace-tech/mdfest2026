@@ -1,7 +1,7 @@
 # MD FEST 2026 — Bagan & Hasil Lomba
 
 Webapp untuk melihat, mengontrol, dan mengunduh bagan semua lomba MD FEST 2026.
-Struktur sama seperti webapp pendaftaran MLBB: frontend statis di Vercel → `/api/rpc` → Google Apps Script → **Google Sheet** (satu-satunya database). Tema beige–emas, optimal di HP dan desktop.
+Struktur sama seperti webapp pendaftaran MLBB: frontend statis di Vercel → `/api/rpc` → Google Apps Script → **Google Sheet** (satu-satunya database). 
 
 | Halaman | Isi |
 |---|---|

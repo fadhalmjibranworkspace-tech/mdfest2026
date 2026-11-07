@@ -37,35 +37,47 @@
     rect: (x, y, w, h, o) => Object.assign({ t: 'rect', x, y, w, h, r: 0, fill: 'none', stroke: '', sw: 1 }, o),
     text: (x, y, s, o) => Object.assign({ t: 'text', x, y, s, size: 13, w: 700, fill: T.ink, a: 'start', f: 'b', i: false }, o),
     path: (d, o) => Object.assign({ t: 'path', d, fill: 'none', stroke: T.line, sw: 1.6, cap: 'round' }, o),
-    img: (href, x, y, w, h) => ({ t: 'img', href, x, y, w, h })
+    img: (href, x, y, w, h, op) => ({ t: 'img', href, x, y, w, h, op: op == null ? 1 : op })
   };
+
+  function mono(txt, ph) {
+    if (ph) return '';
+    const t = String(txt || '').replace(/["'`’]/g, ' ').trim(); if (!t) return '';
+    const m = t.match(/(\d+\s*[A-Za-z]{1,3})\s*$/); if (m) return m[1].replace(/\s+/g, '').toUpperCase();
+    const w = t.split(/\s+/).filter(Boolean);
+    return (w.length > 1 ? w[0][0] + w[1][0] : w[0].slice(0, 2)).toUpperCase();
+  }
+  function wm(out, L, W, H, top) {
+    const th = g.TH.get(L.kategori), s = Math.min(W * .5, (H - top) * .9, 520);
+    out.push(P.img(g.TH.dataHref(g.TH.emblemSVG(L.kategori, { a: th.c, b: th.d, l: th.l, k: th.d, s: 4 })), W - s * .82, top + (H - top - s) / 2, s, s, .07));
+  }
 
   /* ---------- header & footer ekspor ---------- */
   function header(L, W, o, kind) {
-    const out = [], x0 = 36;
-    if (o.logo) out.push(P.img(o.logo, x0, 26, 56, 70));
-    const tx = o.logo ? x0 + 74 : x0;
-    out.push(P.text(tx, 46, 'MD FEST 2026 · MANAJEMEN DAKWAH', { size: 13, w: 800, f: 'd', fill: T.gold }));
-    out.push(P.text(tx, 88, fit(L.nama, 44, 800, 'd', W - tx - 260), { size: 44, w: 800, f: 'd', fill: T.ink }));
+    const out = [], x0 = 36, th = g.TH.get(L.kategori), HH = 138;
+    out.push(P.img(g.TH.dataHref(g.TH.bannerSVG(L.kategori, Math.round(W), HH, { es: 1.05, ex: W - 250 })), 0, 0, W, HH));
+    let tx = x0;
+    if (o.logo) { out.push(P.rect(x0 - 6, 22, 70, 86, { r: 16, fill: 'rgba(255,247,224,.96)' })); out.push(P.img(o.logo, x0, 30, 58, 72)); tx = x0 + 86; }
+    out.push(P.text(tx, 36, 'MD FEST 2026 · MANAJEMEN DAKWAH', { size: 13, w: 800, f: 'd', fill: '#f3d68a' }));
+    out.push(P.text(tx, 92, fit(L.nama, 46, 800, 'd', W - tx - 290), { size: 46, w: 800, f: 'd', fill: '#fff8e4' }));
     const kat = (g.BG.KATEGORI.find(k => k[0] === L.kategori) || [0, 'Lomba'])[1];
     const sub = [kat, kind === 'bagan' ? 'Bagan eliminasi' : 'Pembagian grup', L.tim.length + ' peserta', L.cfg.subjudul].filter(Boolean).join('  ·  ');
-    out.push(P.text(tx, 112, fit(sub, 13, 600, 'b', W - tx - 40), { size: 13, w: 600, fill: T.ink2 }));
-    if (o.stat) out.push(P.text(W - 36, 46, o.stat, { size: 13, w: 800, f: 'd', fill: T.gold, a: 'end' }));
-    out.push(P.path('M36 132H' + (W - 36), { stroke: T.goldHi, sw: 2 }));
+    if (o.stat) out.push(P.text(tx, 66, o.stat, { size: 13, w: 800, f: 'd', fill: '#f3d68a' }));
+    out.push(P.text(tx, 116, fit(sub, 13, 600, 'b', W - tx - 290), { size: 13, w: 600, fill: th.m }));
     return out;
   }
   function footer(W, y, o) {
     const d = new Date(), tgl = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
     return [P.path('M36 ' + y + 'H' + (W - 36), { stroke: T.line, sw: 1 }),
       P.text(36, y + 22, 'Diunduh ' + tgl, { size: 11, w: 600, fill: T.mute }),
-      P.text(W - 36, y + 22, 'Bagan resmi MD FEST 2026', { size: 11, w: 800, f: 'd', fill: T.gold, a: 'end' })];
+      P.text(W - 36, y + 22, 'Bagan resmi MD FEST 2026', { size: 11, w: 800, f: 'd', fill: T.goldLo, a: 'end' })];
   }
 
   /* ---------- bagan ---------- */
   const CW = 244, CH = 66, GX = 72, GY = 38, PX = 34;
   function layoutBracket(L, C, o) {
     o = o || {};
-    const BG = g.BG, HEAD = o.header ? 150 : 0, Y0 = HEAD + 70;
+    const BG = g.BG, th = g.TH.get(L.kategori), HEAD = o.header ? 150 : 0, Y0 = HEAD + 70;
     const fin = C.final; fin.hidden = false;
     const visRounds = []; C.rounds.forEach((l, r) => { if (l.some(m => !m.hidden)) visRounds.push(r); });
     const col = {}; visRounds.forEach((r, i) => (col[r] = i));
@@ -86,8 +98,10 @@
     const names = [];
     visRounds.forEach(r => {
       const x = xOf(col[r]);
-      names.push(P.text(x + CW / 2, Y0 - 38, C.names[r], { size: 17, w: 800, f: 'd', fill: T.goldLo, a: 'middle' }));
-      names.push(P.path('M' + (x + CW / 2 - 22) + ' ' + (Y0 - 28) + 'H' + (x + CW / 2 + 22), { stroke: T.goldHi, sw: 2.5 }));
+      const nm = String(C.names[r]).toUpperCase(), pw = Math.min(CW, measure(nm, 17, 800, 'd') + 36);
+      names.push(P.rect(x + CW / 2 - pw / 2, Y0 - 59, pw, 29, { r: 14.5, fill: th.c }));
+      names.push(P.rect(x + CW / 2 - pw / 2 + 2.5, Y0 - 56.5, pw - 5, 24, { r: 12, fill: 'none', stroke: 'rgba(255,255,255,.35)', sw: 1 }));
+      names.push(P.text(x + CW / 2, Y0 - 39, nm, { size: 17, w: 800, f: 'd', fill: '#fff8e4', a: 'middle' }));
     });
 
     const sideText = (o2, which) => {
@@ -103,24 +117,27 @@
       const y = yc - CH / 2, both = m.a.t && m.b.t;
       const live = m.live, nxt = m.isNext && !live;
       pr.push(P.rect(x, y + 3, CW, CH, { r: 11, fill: T.soft }));
-      pr.push(P.rect(x, y, CW, CH, { r: 11, fill: T.card, stroke: live ? T.live : nxt ? T.gold : T.cardLine, sw: live || nxt ? 2.2 : 1.3 }));
-      pr.push(P.path('M' + (x + 10) + ' ' + yc + 'H' + (x + CW - 10), { stroke: T.line, sw: 1, cap: 'butt' }));
+      pr.push(P.rect(x, y, CW, CH, { r: 11, fill: T.card, stroke: live ? T.live : nxt ? th.c : th.m, sw: live || nxt ? 2.4 : 1.4 }));
+      pr.push(P.rect(x, y + 10, 5, CH - 20, { r: 2.5, fill: live ? T.live : th.c }));
+      pr.push(P.path('M' + (x + 10) + ' ' + yc + 'H' + (x + CW - 10), { stroke: th.m, sw: 1, cap: 'butt' }));
       const lab = fit(extraLabel || m.label, 11, 800, 'd', CW - 96);
-      pr.push(P.text(x + 4, y - 9, lab.toUpperCase(), { size: 11.5, w: 800, f: 'd', fill: T.ink2 }));
+      pr.push(P.text(x + 4, y - 9, lab.toUpperCase(), { size: 11.5, w: 800, f: 'd', fill: th.d }));
       const tag = live ? '● LIVE' : nxt ? 'BERIKUTNYA' : g.BG.when(L, m, true);
-      if (tag) pr.push(P.text(x + CW - 4, y - 9, tag, { size: 11, w: 800, f: 'd', fill: live ? T.live : nxt ? T.gold : T.ink2, a: 'end' }));
+      if (tag) pr.push(P.text(x + CW - 4, y - 9, tag, { size: 11, w: 800, f: 'd', fill: live ? T.live : nxt ? th.c : T.ink2, a: 'end' }));
       ['a', 'b'].forEach((k, i) => {
         const ry = y + i * (CH / 2), st = sideText(m, k), won = m.winner === k, lost = m.winner && !won;
-        if (won) pr.push(P.rect(x + 3, ry + 3, CW - 6, CH / 2 - 6, { r: 8, fill: T.win }));
-        if (won) pr.push(P.rect(x + 3, ry + 7, 4, CH / 2 - 14, { r: 2, fill: T.gold }));
+        if (won) pr.push(P.rect(x + 7, ry + 3, CW - 10, CH / 2 - 6, { r: 8, fill: th.l }));
+        const av = mono(st.txt, st.ph);
+        pr.push(P.rect(x + 14, ry + CH / 4 - 9.5, 19, 19, { r: 9.5, fill: st.ph ? 'rgba(0,0,0,.05)' : won ? th.c : th.m }));
+        if (av) pr.push(P.text(x + 23.5, ry + CH / 4 + 3.6, av, { size: av.length > 2 ? 7.5 : 9, w: 800, f: 'd', fill: won ? '#fff8e4' : th.d, a: 'middle' }));
         const showScore = both && (m.sa + m.sb > 0 || m.status === 'live' || m.status === 'selesai' || m.done);
         const sc = k === 'a' ? m.sa : m.sb, pen = k === 'a' ? m.pa : m.pb;
         let scTxt = showScore ? String(sc) : '', scW = 0;
         if (showScore && (m.pa || m.pb)) scTxt = sc + ' (' + pen + ')';
         if (scTxt) scW = measure(scTxt, 15, 800, 'b') + 8;
-        const nm = fit(st.txt, st.ph ? 12 : 13.5, st.ph ? 600 : won ? 800 : 700, 'b', CW - 30 - scW);
-        pr.push(P.text(x + 15, ry + CH / 4 + 5, nm, { size: st.ph ? 12 : 13.5, w: st.ph ? 600 : won ? 800 : 700, fill: st.ph ? T.mute : lost ? T.ink2 : T.ink, i: st.ph && st.txt !== 'BYE' }));
-        if (scTxt) pr.push(P.text(x + CW - 14, ry + CH / 4 + 5.5, scTxt, { size: 15, w: 800, fill: won ? T.goldLo : lost ? T.mute : T.ink, a: 'end' }));
+        const nm = fit(st.txt, st.ph ? 12 : 13.5, st.ph ? 600 : won ? 800 : 700, 'b', CW - 52 - scW);
+        pr.push(P.text(x + 40, ry + CH / 4 + 5, nm, { size: st.ph ? 12 : 13.5, w: st.ph ? 600 : won ? 800 : 700, fill: st.ph ? T.mute : lost ? T.ink2 : T.ink, i: st.ph && st.txt !== 'BYE' }));
+        if (scTxt) pr.push(P.text(x + CW - 14, ry + CH / 4 + 5.5, scTxt, { size: 15, w: 800, fill: won ? th.d : lost ? T.mute : T.ink, a: 'end' }));
       });
       pr.push(P.rect(x, y - 16, CW, CH + 16, { fill: 'rgba(0,0,0,0)', g: m.key, hit: true }));
     }
@@ -131,7 +148,7 @@
       const vf = vfeed(m), cx = xOf(col[m.r]), cy = yOf(pos[m.key]);
       vf.forEach(f => {
         const fx = xOf(col[f.r]) + CW, fy = yOf(pos[f.key]), mx = fx + GX / 2;
-        bgp.push(P.path('M' + fx + ' ' + fy + 'H' + mx + 'V' + cy + 'H' + cx, { stroke: f.done ? T.gold : T.line, sw: f.done ? 2 : 1.6 }));
+        bgp.push(P.path('M' + fx + ' ' + fy + 'H' + mx + 'V' + cy + 'H' + cx, { stroke: f.done ? th.c : th.m, sw: f.done ? 2.2 : 1.6 }));
       });
     });
     C.all.forEach(m => { if (m.hidden || m.isThird) return; card(m, xOf(col[m.r]), yOf(pos[m.key])); });
@@ -146,21 +163,21 @@
     // kotak juara
     const chx = xOf(nc), chH = 150, chy = fy - chH / 2 + 4;
     const champ = C.champion && C.champion.t ? C.champion.t.nama : '', ru = C.runnerUp && C.runnerUp.t ? C.runnerUp.t.nama : '', tp = C.thirdPlace && C.thirdPlace.t ? C.thirdPlace.t.nama : '';
-    const chFill = champ ? T.goldHi : T.card;
-    pr.push(P.path('M' + (fx + CW) + ' ' + fy + 'H' + chx, { stroke: champ ? T.gold : T.line, sw: champ ? 2.4 : 1.6 }));
-    pr.push(P.rect(chx, chy + 3, CW, chH, { r: 14, fill: T.soft }));
-    pr.push(P.rect(chx, chy, CW, chH, { r: 14, fill: chFill, stroke: T.gold, sw: 2 }));
-    pr.push(P.path(trophy(chx + CW / 2, chy + 34, 11), { stroke: T.goldLo, sw: 2.4, cap: 'round' }));
-    pr.push(P.text(chx + CW / 2, chy + 82, 'JUARA 1', { size: 13, w: 800, f: 'd', fill: T.goldLo, a: 'middle' }));
-    pr.push(P.text(chx + CW / 2, chy + 108, fit(champ || 'Belum ada', 21, 800, 'd', CW - 30), { size: 21, w: 800, f: 'd', fill: champ ? T.ink : T.mute, a: 'middle' }));
-    const l2 = (ru ? 'Juara 2: ' + ru : '') + (ru && tp ? '' : ''), l3 = tp ? 'Juara 3: ' + tp : '';
-    if (ru) pr.push(P.text(chx + CW / 2, chy + 128, fit(l2, 11.5, 700, 'b', CW - 24), { size: 11.5, w: 700, fill: T.ink2, a: 'middle' }));
-    if (tp) pr.push(P.text(chx + CW / 2, chy + 143, fit(l3, 11.5, 700, 'b', CW - 24), { size: 11.5, w: 700, fill: T.ink2, a: 'middle' }));
+    pr.push(P.path('M' + (fx + CW) + ' ' + fy + 'H' + chx, { stroke: champ ? T.goldHi : th.m, sw: champ ? 2.6 : 1.6 }));
+    pr.push(P.rect(chx, chy + 4, CW, chH, { r: 16, fill: T.soft }));
+    pr.push(P.rect(chx, chy, CW, chH, { r: 16, fill: champ ? th.d : T.card, stroke: T.goldHi, sw: 2.4 }));
+    pr.push(P.img(g.TH.dataHref(g.TH.emblemSVG(L.kategori, { a: champ ? th.glow : th.m, b: th.c, l: champ ? '#fff7e0' : '#fff', k: champ ? th.c : th.d, s: 5 })), chx + CW - 78, chy + chH - 80, 80, 80, champ ? .28 : .16));
+    pr.push(P.path(trophy(chx + CW / 2, chy + 34, 11), { stroke: champ ? T.goldHi : th.d, sw: 2.6, cap: 'round' }));
+    pr.push(P.text(chx + CW / 2, chy + 82, 'JUARA 1', { size: 13, w: 800, f: 'd', fill: champ ? T.goldHi : th.d, a: 'middle' }));
+    pr.push(P.text(chx + CW / 2, chy + 108, fit(champ || 'Belum ada', 21, 800, 'd', CW - 30), { size: 21, w: 800, f: 'd', fill: champ ? '#fff8e4' : T.mute, a: 'middle' }));
+    const l2 = ru ? 'Juara 2: ' + ru : '', l3 = tp ? 'Juara 3: ' + tp : '';
+    if (ru) pr.push(P.text(chx + CW / 2, chy + 128, fit(l2, 11.5, 700, 'b', CW - 24), { size: 11.5, w: 700, fill: champ ? th.m : T.ink2, a: 'middle' }));
+    if (tp) pr.push(P.text(chx + CW / 2, chy + 143, fit(l3, 11.5, 700, 'b', CW - 24), { size: 11.5, w: 700, fill: champ ? th.m : T.ink2, a: 'middle' }));
     maxY = Math.max(maxY, chy + chH);
 
     let W = Math.max(xOf(nc) + CW + PX, o.header ? 820 : 0), H = maxY + 40;
     const out = [];
-    if (o.bg) out.push(P.rect(0, 0, W, H + (o.header ? 54 : 0), { fill: T.bg }));
+    if (o.bg) { out.push(P.rect(0, 0, W, H + (o.header ? 54 : 0), { fill: T.bg })); wm(out, L, W, H + (o.header ? 54 : 0), HEAD); }
     if (o.header) out.push.apply(out, header(L, W, o, 'bagan'));
     out.push.apply(out, names); out.push.apply(out, bgp); out.push.apply(out, pr);
     if (o.header) { out.push.apply(out, footer(W, H + 6, o)); H += 54; }
@@ -169,7 +186,7 @@
 
   /* ---------- grup (khusus ekspor) ---------- */
   function layoutGroups(L, o) {
-    o = o || {}; const BG = g.BG, n = L.grup.length, single = n === 1;
+    o = o || {}; const BG = g.BG, tm = g.TH.get(L.kategori), n = L.grup.length, single = n === 1;
     const cols = single ? 1 : Math.min(n, 4), cw = single ? 420 : 280, rh = 40, th = 56, gap = 26;
     const cards = L.grup.map((gr, i) => ({ gr, m: BG.members(L, i) }));
     const un = L.tim.filter(t => t.grup < 0 || t.grup >= n);
@@ -178,7 +195,7 @@
     const HEAD = o.header ? 150 : 0, Y0 = HEAD + 24;
     const heights = cards.map(c => th + Math.max(1, c.m.length) * rh + 14);
     const rowH = []; for (let r = 0; r < rowsOf(); r++) rowH.push(Math.max.apply(null, heights.slice(r * cols, r * cols + cols)));
-    const W = Math.max(PX * 2 + cols * cw + (cols - 1) * gap, o.header ? 760 : 0), x0 = (W - (cols * cw + (cols - 1) * gap)) / 2;
+    const W = Math.max(PX * 2 + cols * cw + (cols - 1) * gap, o.header ? 980 : 0), x0 = (W - (cols * cw + (cols - 1) * gap)) / 2;
     const out = [], pr = [];
     let y = Y0;
     for (let r = 0; r < rowsOf(); r++) {
@@ -186,24 +203,24 @@
         const k = r * cols + c; if (k >= cards.length) break;
         const cd = cards[k], x = x0 + c * (cw + gap), h = rowH[r];
         pr.push(P.rect(x, y + 3, cw, h, { r: 14, fill: T.soft }));
-        pr.push(P.rect(x, y, cw, h, { r: 14, fill: T.card, stroke: T.cardLine, sw: 1.3 }));
-        pr.push(P.rect(x, y, cw, th, { r: 14, fill: cd.muted ? T.mute : T.goldHi }));
-        pr.push(P.rect(x, y + th - 14, cw, 14, { fill: cd.muted ? T.mute : T.goldHi }));
-        pr.push(P.text(x + 18, y + 36, fit(cd.gr.nama, 24, 800, 'd', cw - 70), { size: 24, w: 800, f: 'd', fill: T.ink }));
-        pr.push(P.text(x + cw - 18, y + 35, cd.m.length + ' tim', { size: 12, w: 800, f: 'd', fill: T.goldLo, a: 'end' }));
+        pr.push(P.rect(x, y, cw, h, { r: 14, fill: T.card, stroke: tm.m, sw: 1.4 }));
+        pr.push(P.rect(x, y, cw, th, { r: 14, fill: cd.muted ? T.mute : tm.c }));
+        pr.push(P.rect(x, y + th - 14, cw, 14, { fill: cd.muted ? T.mute : tm.c }));
+        pr.push(P.text(x + 18, y + 36, fit(cd.gr.nama, 24, 800, 'd', cw - 70), { size: 24, w: 800, f: 'd', fill: '#fff8e4' }));
+        pr.push(P.text(x + cw - 18, y + 35, cd.m.length + ' tim', { size: 12, w: 800, f: 'd', fill: tm.l, a: 'end' }));
         if (!cd.m.length) pr.push(P.text(x + 18, y + th + 26, 'Belum ada tim', { size: 13, w: 600, fill: T.mute, i: true }));
         cd.m.forEach((t, i) => {
           const ry = y + th + i * rh;
-          if (i) pr.push(P.path('M' + (x + 14) + ' ' + ry + 'H' + (x + cw - 14), { stroke: T.line, sw: 1, cap: 'butt' }));
-          pr.push(P.rect(x + 14, ry + 8, 26, 24, { r: 7, fill: T.win }));
-          pr.push(P.text(x + 27, ry + 25, String(i + 1), { size: 13, w: 800, f: 'd', fill: T.goldLo, a: 'middle' }));
+          if (i) pr.push(P.path('M' + (x + 14) + ' ' + ry + 'H' + (x + cw - 14), { stroke: tm.m, sw: 1, cap: 'butt' }));
+          pr.push(P.rect(x + 14, ry + 8, 26, 24, { r: 7, fill: tm.l }));
+          pr.push(P.text(x + 27, ry + 25, String(i + 1), { size: 13, w: 800, f: 'd', fill: tm.d, a: 'middle' }));
           pr.push(P.text(x + 52, ry + 26, fit(t.nama, 15, 700, 'b', cw - 70), { size: 15, w: 700 }));
         });
       }
       y += rowH[r] + gap;
     }
     const H = y + 10;
-    if (o.bg) out.push(P.rect(0, 0, W, H + (o.header ? 54 : 0), { fill: T.bg }));
+    if (o.bg) { out.push(P.rect(0, 0, W, H + (o.header ? 54 : 0), { fill: T.bg })); wm(out, L, W, H + (o.header ? 54 : 0), HEAD); }
     if (o.header) out.push.apply(out, header(L, W, o, 'grup'));
     out.push.apply(out, pr);
     let HH = H; if (o.header) { out.push.apply(out, footer(W, H + 6, o)); HH += 54; }
@@ -224,7 +241,7 @@
     }
     if (p.t === 'text') return '<text x="' + p.x + '" y="' + p.y + '" font-size="' + p.size + '" font-weight="' + p.w + '" fill="' + p.fill + '" text-anchor="' + p.a + '" font-family=\'' + fam(p.f) + '\'' + (p.i ? ' font-style="italic"' : '') + '>' + esc(p.s) + '</text>';
     if (p.t === 'path') return '<path d="' + p.d + '" fill="' + p.fill + '" stroke="' + p.stroke + '" stroke-width="' + p.sw + '" stroke-linecap="' + p.cap + '" stroke-linejoin="round"/>';
-    if (p.t === 'img') return '<image href="' + p.href + '" x="' + p.x + '" y="' + p.y + '" width="' + p.w + '" height="' + p.h + '"/>';
+    if (p.t === 'img') return '<image href="' + p.href + '" x="' + p.x + '" y="' + p.y + '" width="' + p.w + '" height="' + p.h + '"' + (p.op < 1 ? ' opacity="' + p.op + '"' : '') + '/>';
     return '';
   }
   function svgString(lay, forDom) {
@@ -244,7 +261,7 @@
         ctx.fillText(p.s, p.x, p.y);
       } else if (p.t === 'path') {
         ctx.strokeStyle = p.stroke; ctx.lineWidth = p.sw; ctx.lineCap = p.cap || 'round'; ctx.lineJoin = 'round'; ctx.stroke(new Path2D(p.d));
-      } else if (p.t === 'img' && imgs && imgs[p.href]) ctx.drawImage(imgs[p.href], p.x, p.y, p.w, p.h);
+      } else if (p.t === 'img' && imgs && imgs[p.href]) { ctx.globalAlpha = p.op; ctx.drawImage(imgs[p.href], p.x, p.y, p.w, p.h); ctx.globalAlpha = 1; }
     });
   }
 
@@ -273,9 +290,9 @@
       const sc = Math.max(1, Math.min(2.5, 7600 / Math.max(lay.w, lay.h)));
       const cv = document.createElement('canvas'); cv.width = Math.round(lay.w * sc); cv.height = Math.round(lay.h * sc);
       const ctx = cv.getContext('2d'); ctx.scale(sc, sc);
-      const href = lay.prims.filter(p => p.t === 'img').map(p => p.href)[0];
-      return (href ? loadImg(href) : Promise.resolve(null)).then(im => {
-        const imgs = {}; if (im) imgs[href] = im;
+      const hrefs = lay.prims.filter(p => p.t === 'img').map(p => p.href).filter((h, i, a) => a.indexOf(h) === i);
+      return Promise.all(hrefs.map(loadImg)).then(ims => {
+        const imgs = {}; hrefs.forEach((h, i) => { if (ims[i]) imgs[h] = ims[i]; });
         drawCanvas(ctx, lay, imgs);
         return new Promise((res, rej) => cv.toBlob(b => (b ? res({ blob: b, w: lay.w, h: lay.h, cv }) : rej(new Error('Gagal membuat gambar'))), 'image/png'));
       });

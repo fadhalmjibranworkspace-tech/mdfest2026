@@ -79,8 +79,8 @@
       h += '<div class="acts"><button class="btn line sm" id="im" type="button" data-ic="upload">Impor / muat contoh</button></div>';
       L.forEach((x, i) => {
         const S2 = BG.summary(x);
-        h += '<article class="card lrow" data-id="' + F.esc(x.id) + '"><div class="hd"><div style="min-width:0"><h3>' + F.esc(x.nama) + '</h3><div class="meta"><span class="badge gold">' + F.esc(F.kat(x.kategori)) + '</span><span class="badge">' + (x.tipe === 'bagan' ? 'Bagan' : 'Grup') + '</span><span class="badge">' + x.tim.length + ' tim</span>' +
-          (x.tipe === 'bagan' ? '<span class="badge ' + (S2.champion ? 'ok' : '') + '">' + S2.done + '/' + S2.total + ' selesai</span>' : '') + (S2.lives && S2.lives.length ? '<span class="badge live">● Live</span>' : '') + '</div></div>' +
+        h += '<article class="card lrow" style="' + TH.vars(x.kategori) + '" data-id="' + F.esc(x.id) + '"><div class="hd"><div style="display:flex;gap:12px;align-items:center;min-width:0">' + TH.badge(x.kategori) + '<div style="min-width:0"><h3>' + F.esc(x.nama) + '</h3><div class="meta"><span class="badge gold">' + F.esc(F.kat(x.kategori)) + '</span><span class="badge">' + (x.tipe === 'bagan' ? 'Bagan' : 'Grup') + '</span><span class="badge">' + x.tim.length + ' tim</span>' +
+          (x.tipe === 'bagan' ? '<span class="badge ' + (S2.champion ? 'ok' : '') + '">' + S2.done + '/' + S2.total + ' selesai</span>' : '') + (S2.lives && S2.lives.length ? '<span class="badge live">● Live</span>' : '') + '</div></div></div>' +
           '<div class="ord"><button class="btn line ib xs" data-up="' + i + '" type="button" aria-label="Naikkan"' + (i === 0 ? ' disabled' : '') + ' data-ic="up"></button><button class="btn line ib xs" data-dn="' + i + '" type="button" aria-label="Turunkan"' + (i === L.length - 1 ? ' disabled' : '') + ' data-ic="down"></button></div></div>' +
           '<div class="ft"><label class="sw"><input type="checkbox" data-pub="' + F.esc(x.id) + '"' + (x.publik ? ' checked' : '') + '><i></i>' + (x.publik ? 'Diterbitkan' : 'Disembunyikan') + '</label><div class="acts"><a class="btn line sm" href="/lomba?id=' + encodeURIComponent(x.id) + '" target="_blank" rel="noopener" data-ic="eye">Lihat</a><a class="btn gld sm" href="#lomba/' + encodeURIComponent(x.id) + '" data-ic="edit">Kelola</a></div></div></article>';
       });
@@ -163,7 +163,7 @@
     }
     const T = tabsOf(); if (!T.some(t => t[0] === etab)) etab = T[0][0];
     head(W.nama, subLine(), isNew ? '' : '<a class="btn line sm" href="/lomba?id=' + encodeURIComponent(W.id) + '" target="_blank" rel="noopener" data-ic="eye">Lihat</a>', true);
-    page('<div class="etabs"><div class="tabs" id="etabs" role="tablist">' + T.map(t => '<button class="tab' + (etab === t[0] ? ' on' : '') + '" role="tab" data-t="' + t[0] + '" type="button">' + F.ic(t[2]) + t[1] + '</button>').join('') + '</div></div><div id="etab"></div>');
+    page('<div class="etabs"><div class="tabs" id="etabs" role="tablist">' + T.map(t => '<button class="tab' + (etab === t[0] ? ' on' : '') + '" role="tab" data-t="' + t[0] + '" type="button">' + F.ic(t[2]) + t[1] + '</button>').join('') + '</div></div><div id="etab"></div>'); $('page').style.cssText = TH.vars(W.kategori);
     $('etabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; etab = b.dataset.t; F.set('bg_etab', etab); [].forEach.call($('etabs').children, x => x.classList.toggle('on', x === b)); drawTab(); window.scrollTo(0, 0); });
     setDirty(dirty); drawTab();
   }

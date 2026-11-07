@@ -64,3 +64,23 @@
   .erow{grid-template-columns:minmax(150px,1fr) 1.6fr;align-items:center}
   .toast{bottom:90px}
 }
+
+/* v2 admin: sidebar cokelat tua + emas, baris lomba bertema */
+.top{background:rgba(252,247,234,.94)}.top h1{background:var(--gold-t);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.lrow{position:relative;overflow:hidden;padding-left:22px;border-color:var(--cam)}
+.lrow::before{content:"";position:absolute;left:0;top:0;bottom:0;width:7px;background:linear-gradient(180deg,var(--ca),var(--ca2))}
+.lrow::after{content:"";position:absolute;right:-14px;top:-14px;width:110px;height:110px;border-radius:50%;background:var(--cat);opacity:.55;z-index:0;pointer-events:none}
+.lrow>*{position:relative;z-index:1}
+.lrow .eb{width:46px;height:46px}
+.stat b{color:var(--gold-lo)}
+@media(min-width:960px){
+  .side{background:linear-gradient(180deg,#2c1f0b,#3d2c0e 70%,#4a3411);border-right:1px solid rgba(232,192,106,.4)}
+  .sb-brand b{color:var(--gold-hi)}.sb-brand small{color:#cdb98a}
+  .sb-i{color:#e5d5a8}.sb-i:hover{background:rgba(255,248,228,.08)}
+  .sb-i.on{background:var(--gold-g);color:var(--gold-ink)}
+  .sb-foot{border-top-color:rgba(232,192,106,.25);color:#e5d5a8}
+}
+.bn{background:#33250f;border-top:1px solid rgba(232,192,106,.4)}.bn a,.bn button{color:#d9c796}.bn .on{background:var(--gold-g);color:var(--gold-ink)}
+#page .etabs .tabs{background:var(--fill)}
+#page .panel{border-color:var(--cam);border-top:4px solid var(--ca)}#page .panel h2{color:var(--ca2)}
+#page .trow .n{background:var(--cat);color:var(--ca2)}
