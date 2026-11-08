@@ -5,22 +5,22 @@
    ===================================================================== */
 (function (g) {
   'use strict';
-  const T = { bg: '#f4ead6', card: '#fffaf0', cardLine: '#cdac66', ink: '#33250f', ink2: '#7a6444', mute: '#a8957a', gold: '#b8862b', goldHi: '#e8c06a',
-    goldLo: '#8a6118', live: '#c8362f', win: '#f7e6b6', line: '#d8bd84', soft: 'rgba(120,86,22,.12)' };
-  const FB = '"Plus Jakarta Sans","Inter","Segoe UI",system-ui,sans-serif', FD = '"Big Shoulders Display","Arial Narrow","Inter",sans-serif';
+  const T = { bg: '#f6edda', card: '#fffbf0', cardLine: '#cdb06a', ink: '#2b160f', ink2: '#6a5139', mute: '#a38f6e', gold: '#d4a847', goldHi: '#f3d98b',
+    goldLo: '#8d6317', live: '#d63a30', win: '#f6e8bd', line: '#d9c48b', soft: 'rgba(90,50,10,.13)', wine: '#2a0a10', wine2: '#431019', cream: '#f7efdc' };
+  const FB = '"MDF Text","Inter","Segoe UI",system-ui,sans-serif', FD = '"MDF Display","GFS Baskerville","Baskerville",Georgia,serif';
   const fam = f => (f === 'd' ? FD : FB);
 
   let mctx = null;
-  function measure(txt, size, w, f) {
+  function measure(txt, size, w, f, ls) {
     if (!mctx) mctx = document.createElement('canvas').getContext('2d');
     mctx.font = w + ' ' + size + 'px ' + fam(f);
-    return mctx.measureText(txt).width;
+    return mctx.measureText(txt).width + (ls || 0) * String(txt).length;
   }
-  function fit(txt, size, w, f, max) {
+  function fit(txt, size, w, f, max, ls) {
     txt = String(txt == null ? '' : txt);
-    if (measure(txt, size, w, f) <= max) return txt;
+    if (measure(txt, size, w, f, ls) <= max) return txt;
     let s = txt;
-    while (s.length > 1 && measure(s + '…', size, w, f) > max) s = s.slice(0, -1);
+    while (s.length > 1 && measure(s + '…', size, w, f, ls) > max) s = s.slice(0, -1);
     return s.trim() + '…';
   }
   const rr = (x, y, w, h, r) => 'M' + (x + r) + ' ' + y + 'H' + (x + w - r) + 'A' + r + ' ' + r + ' 0 0 1 ' + (x + w) + ' ' + (y + r) + 'V' + (y + h - r) + 'A' + r + ' ' + r + ' 0 0 1 ' + (x + w - r) + ' ' + (y + h) + 'H' + (x + r) + 'A' + r + ' ' + r + ' 0 0 1 ' + x + ' ' + (y + h - r) + 'V' + (y + r) + 'A' + r + ' ' + r + ' 0 0 1 ' + (x + r) + ' ' + y + 'Z';
@@ -35,7 +35,7 @@
   /* ---------- primitif ---------- */
   const P = {
     rect: (x, y, w, h, o) => Object.assign({ t: 'rect', x, y, w, h, r: 0, fill: 'none', stroke: '', sw: 1 }, o),
-    text: (x, y, s, o) => Object.assign({ t: 'text', x, y, s, size: 13, w: 700, fill: T.ink, a: 'start', f: 'b', i: false }, o),
+    text: (x, y, s, o) => Object.assign({ t: 'text', x, y, s, size: 13, w: 700, fill: T.ink, a: 'start', f: 'b', i: false, ls: 0 }, o),
     path: (d, o) => Object.assign({ t: 'path', d, fill: 'none', stroke: T.line, sw: 1.6, cap: 'round' }, o),
     img: (href, x, y, w, h, op) => ({ t: 'img', href, x, y, w, h, op: op == null ? 1 : op })
   };
@@ -47,37 +47,41 @@
     const w = t.split(/\s+/).filter(Boolean);
     return (w.length > 1 ? w[0][0] + w[1][0] : w[0].slice(0, 2)).toUpperCase();
   }
-  function wm(out, L, W, H, top) {
-    const th = g.TH.get(L.kategori), s = Math.min(W * .5, (H - top) * .9, 520);
-    out.push(P.img(g.TH.dataHref(g.TH.emblemSVG(L.kategori, { a: th.c, b: th.d, l: th.l, k: th.d, s: 4 })), W - s * .82, top + (H - top - s) / 2, s, s, .07));
+  const icoHref = (cat, col, sw) => g.TH.dataHref(g.TH.iconSVG(cat, col, sw));
+  /* watermark ikon lomba + bingkai emas ganda di seluruh gambar */
+  function deco(out, L, W, H, top) {
+    const th = g.TH.get(L.kategori), s = Math.min(W * .46, (H - top) * .9, 520);
+    out.push(P.img(icoHref(L.kategori, th.c, 1), W - s * .86, top + (H - top - s) / 2, s, s, .07));
+    out.push(P.rect(10, 10, W - 20, H - 20, { r: 4, fill: 'none', stroke: T.gold, sw: 1.4 }));
+    out.push(P.rect(16, 16, W - 32, H - 32, { r: 2, fill: 'none', stroke: 'rgba(212,168,71,.4)', sw: 1 }));
   }
+  const diamond = (cx, cy, r, fill) => P.path('M' + cx + ' ' + (cy - r) + 'L' + (cx + r) + ' ' + cy + 'L' + cx + ' ' + (cy + r) + 'L' + (cx - r) + ' ' + cy + 'Z', { fill, stroke: fill, sw: 1, cap: 'butt' });
 
   /* ---------- header & footer ekspor ---------- */
   function header(L, W, o, kind) {
-    const out = [], x0 = 36, th = g.TH.get(L.kategori), HH = 138;
-    out.push(P.img(g.TH.dataHref(g.TH.bannerSVG(L.kategori, Math.round(W), HH, { es: 1.05, ex: W - 250 })), 0, 0, W, HH));
+    const out = [], x0 = 46, th = g.TH.get(L.kategori), HH = 142;
+    out.push(P.img(g.TH.dataHref(g.TH.bannerSVG(L.kategori, Math.round(W), HH, { ex: W - 240 })), 0, 0, W, HH));
     let tx = x0;
-    if (o.logo) { out.push(P.rect(x0 - 6, 22, 70, 86, { r: 16, fill: 'rgba(255,247,224,.96)' })); out.push(P.img(o.logo, x0, 30, 58, 72)); tx = x0 + 86; }
-    out.push(P.text(tx, 36, 'MD FEST 2026 · MANAJEMEN DAKWAH', { size: 13, w: 800, f: 'd', fill: '#f3d68a' }));
-    out.push(P.text(tx, 92, fit(L.nama, 46, 800, 'd', W - tx - 290), { size: 46, w: 800, f: 'd', fill: '#fff8e4' }));
+    if (o.logo) { out.push(P.img(o.logo, x0, 26, 66, 84)); tx = x0 + 92; }
+    out.push(P.text(tx, 46, 'MD FEST 2026  ·  MANAJEMEN DAKWAH', { size: 12.5, w: 400, f: 'd', fill: T.goldHi, ls: 3.2 }));
+    out.push(P.text(tx, 92, fit(L.nama.toUpperCase(), 40, 400, 'd', W - tx - 280, 2.8), { size: 40, w: 400, f: 'd', fill: '#fff6dc', ls: 2.8 }));
     const kat = (g.BG.KATEGORI.find(k => k[0] === L.kategori) || [0, 'Lomba'])[1];
-    const sub = [kat, kind === 'bagan' ? 'Bagan eliminasi' : 'Pembagian grup', L.tim.length + ' peserta', L.cfg.subjudul].filter(Boolean).join('  ·  ');
-    if (o.stat) out.push(P.text(tx, 66, o.stat, { size: 13, w: 800, f: 'd', fill: '#f3d68a' }));
-    out.push(P.text(tx, 116, fit(sub, 13, 600, 'b', W - tx - 290), { size: 13, w: 600, fill: th.m }));
+    const sub = [kat, kind === 'bagan' ? 'Bagan eliminasi' : 'Pembagian grup', L.tim.length + ' peserta', L.cfg.subjudul, o.stat].filter(Boolean).join('   ·   ');
+    out.push(P.text(tx, 122, fit(sub, 13, 500, 'b', W - tx - 280), { size: 13, w: 500, fill: th.m }));
     return out;
   }
   function footer(W, y, o) {
     const d = new Date(), tgl = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
-    return [P.path('M36 ' + y + 'H' + (W - 36), { stroke: T.line, sw: 1 }),
-      P.text(36, y + 22, 'Diunduh ' + tgl, { size: 11, w: 600, fill: T.mute }),
-      P.text(W - 36, y + 22, 'Bagan resmi MD FEST 2026', { size: 11, w: 800, f: 'd', fill: T.goldLo, a: 'end' })];
+    return [P.path('M46 ' + y + 'H' + (W - 46), { stroke: T.line, sw: 1 }), diamond(W / 2, y, 3.5, T.gold),
+      P.text(46, y + 24, 'Diunduh ' + tgl, { size: 11, w: 500, fill: T.mute }),
+      P.text(W - 46, y + 24, 'BAGAN RESMI MD FEST 2026', { size: 11, w: 400, f: 'd', fill: T.goldLo, a: 'end', ls: 2 })];
   }
 
   /* ---------- bagan ---------- */
-  const CW = 244, CH = 66, GX = 72, GY = 38, PX = 34;
+  const CW = 244, CH = 66, GX = 72, GY = 38, PX = 44;
   function layoutBracket(L, C, o) {
     o = o || {};
-    const BG = g.BG, th = g.TH.get(L.kategori), HEAD = o.header ? 150 : 0, Y0 = HEAD + 70;
+    const BG = g.BG, th = g.TH.get(L.kategori), HEAD = o.header ? 156 : 0, Y0 = HEAD + 70;
     const fin = C.final; fin.hidden = false;
     const visRounds = []; C.rounds.forEach((l, r) => { if (l.some(m => !m.hidden)) visRounds.push(r); });
     const col = {}; visRounds.forEach((r, i) => (col[r] = i));
@@ -94,14 +98,13 @@
     const yOf = r => Y0 + r * (CH + GY) + CH / 2;
     const xOf = c => PX + c * (CW + GX);
 
-    const bgp = [], pr = [];
-    const names = [];
+    const bgp = [], pr = [], names = [];
     visRounds.forEach(r => {
-      const x = xOf(col[r]);
-      const nm = String(C.names[r]).toUpperCase(), pw = Math.min(CW, measure(nm, 17, 800, 'd') + 36);
-      names.push(P.rect(x + CW / 2 - pw / 2, Y0 - 59, pw, 29, { r: 14.5, fill: th.c }));
-      names.push(P.rect(x + CW / 2 - pw / 2 + 2.5, Y0 - 56.5, pw - 5, 24, { r: 12, fill: 'none', stroke: 'rgba(255,255,255,.35)', sw: 1 }));
-      names.push(P.text(x + CW / 2, Y0 - 39, nm, { size: 17, w: 800, f: 'd', fill: '#fff8e4', a: 'middle' }));
+      const x = xOf(col[r]), cx = x + CW / 2, nm = String(C.names[r]).toUpperCase(), LS = 3, tw = measure(nm, 14, 400, 'd', LS), yb = Y0 - 36;
+      names.push(P.text(cx, yb, nm, { size: 14, w: 400, f: 'd', fill: th.d, a: 'middle', ls: LS }));
+      names.push(P.path('M' + (x + 6) + ' ' + (yb - 5) + 'H' + (cx - tw / 2 - 14), { stroke: T.gold, sw: 1, cap: 'butt' }));
+      names.push(P.path('M' + (cx + tw / 2 + 14) + ' ' + (yb - 5) + 'H' + (x + CW - 6), { stroke: T.gold, sw: 1, cap: 'butt' }));
+      names.push(diamond(cx - tw / 2 - 8, yb - 5, 2.6, T.gold)); names.push(diamond(cx + tw / 2 + 8, yb - 5, 2.6, T.gold));
     });
 
     const sideText = (o2, which) => {
@@ -116,39 +119,38 @@
     function card(m, x, yc, extraLabel) {
       const y = yc - CH / 2, both = m.a.t && m.b.t;
       const live = m.live, nxt = m.isNext && !live;
-      pr.push(P.rect(x, y + 3, CW, CH, { r: 11, fill: T.soft }));
-      pr.push(P.rect(x, y, CW, CH, { r: 11, fill: T.card, stroke: live ? T.live : nxt ? th.c : th.m, sw: live || nxt ? 2.4 : 1.4 }));
-      pr.push(P.rect(x, y + 10, 5, CH - 20, { r: 2.5, fill: live ? T.live : th.c }));
-      pr.push(P.path('M' + (x + 10) + ' ' + yc + 'H' + (x + CW - 10), { stroke: th.m, sw: 1, cap: 'butt' }));
-      const lab = fit(extraLabel || m.label, 11, 800, 'd', CW - 96);
-      pr.push(P.text(x + 4, y - 9, lab.toUpperCase(), { size: 11.5, w: 800, f: 'd', fill: th.d }));
+      pr.push(P.rect(x, y + 4, CW, CH, { r: 9, fill: T.soft }));
+      pr.push(P.rect(x, y, CW, CH, { r: 9, fill: T.card, stroke: live ? T.live : nxt ? th.c : T.cardLine, sw: live || nxt ? 2.2 : 1.2 }));
+      pr.push(P.rect(x + 5, y + 5, CW - 10, CH - 10, { r: 5, fill: 'none', stroke: 'rgba(212,168,71,.22)', sw: 1 }));
+      pr.push(P.path('M' + (x + 12) + ' ' + yc + 'H' + (x + CW - 12), { stroke: T.line, sw: 1, cap: 'butt' }));
+      const lab = fit(extraLabel || m.label, 10.5, 400, 'd', CW - 100, 1.6);
+      pr.push(P.text(x + 3, y - 9, lab.toUpperCase(), { size: 10.5, w: 400, f: 'd', fill: th.d, ls: 1.6 }));
       const tag = live ? '● LIVE' : nxt ? 'BERIKUTNYA' : g.BG.when(L, m, true);
-      if (tag) pr.push(P.text(x + CW - 4, y - 9, tag, { size: 11, w: 800, f: 'd', fill: live ? T.live : nxt ? th.c : T.ink2, a: 'end' }));
+      if (tag) pr.push(P.text(x + CW - 3, y - 9, tag, { size: 10.5, w: 700, fill: live ? T.live : nxt ? th.c : T.ink2, a: 'end' }));
       ['a', 'b'].forEach((k, i) => {
         const ry = y + i * (CH / 2), st = sideText(m, k), won = m.winner === k, lost = m.winner && !won;
-        if (won) pr.push(P.rect(x + 7, ry + 3, CW - 10, CH / 2 - 6, { r: 8, fill: th.l }));
+        if (won) { pr.push(P.rect(x + 7, ry + 4, CW - 14, CH / 2 - 8, { r: 5, fill: T.win })); pr.push(diamond(x + CW - 17, ry + CH / 4, 3, T.gold)); }
         const av = mono(st.txt, st.ph);
-        pr.push(P.rect(x + 14, ry + CH / 4 - 9.5, 19, 19, { r: 9.5, fill: st.ph ? 'rgba(0,0,0,.05)' : won ? th.c : th.m }));
-        if (av) pr.push(P.text(x + 23.5, ry + CH / 4 + 3.6, av, { size: av.length > 2 ? 7.5 : 9, w: 800, f: 'd', fill: won ? '#fff8e4' : th.d, a: 'middle' }));
+        pr.push(P.rect(x + 15, ry + CH / 4 - 9.5, 19, 19, { r: 9.5, fill: st.ph ? 'none' : won ? th.c : 'none', stroke: st.ph ? 'rgba(138,110,60,.3)' : won ? th.c : th.c, sw: 1.1 }));
+        if (av) pr.push(P.text(x + 24.5, ry + CH / 4 + 3.4, av, { size: av.length > 2 ? 7.5 : 8.5, w: 800, fill: won ? '#fff6dc' : th.d, a: 'middle' }));
         const showScore = both && (m.sa + m.sb > 0 || m.status === 'live' || m.status === 'selesai' || m.done);
         const sc = k === 'a' ? m.sa : m.sb, pen = k === 'a' ? m.pa : m.pb;
         let scTxt = showScore ? String(sc) : '', scW = 0;
         if (showScore && (m.pa || m.pb)) scTxt = sc + ' (' + pen + ')';
         if (scTxt) scW = measure(scTxt, 15, 800, 'b') + 8;
-        const nm = fit(st.txt, st.ph ? 12 : 13.5, st.ph ? 600 : won ? 800 : 700, 'b', CW - 52 - scW);
-        pr.push(P.text(x + 40, ry + CH / 4 + 5, nm, { size: st.ph ? 12 : 13.5, w: st.ph ? 600 : won ? 800 : 700, fill: st.ph ? T.mute : lost ? T.ink2 : T.ink, i: st.ph && st.txt !== 'BYE' }));
-        if (scTxt) pr.push(P.text(x + CW - 14, ry + CH / 4 + 5.5, scTxt, { size: 15, w: 800, fill: won ? th.d : lost ? T.mute : T.ink, a: 'end' }));
+        const nm = fit(st.txt, st.ph ? 12 : 13.5, st.ph ? 500 : won ? 800 : 600, 'b', CW - 66 - scW - (won ? 12 : 0));
+        pr.push(P.text(x + 42, ry + CH / 4 + 4.8, nm, { size: st.ph ? 12 : 13.5, w: st.ph ? 500 : won ? 800 : 600, fill: st.ph ? T.mute : lost ? T.ink2 : T.ink, i: st.ph && st.txt !== 'BYE' }));
+        if (scTxt) pr.push(P.text(x + CW - (won ? 30 : 16), ry + CH / 4 + 5.3, scTxt, { size: 15, w: 800, fill: won ? th.d : lost ? T.mute : T.ink, a: 'end' }));
       });
       pr.push(P.rect(x, y - 16, CW, CH + 16, { fill: 'rgba(0,0,0,0)', g: m.key, hit: true }));
     }
 
-    // konektor dulu (di bawah kartu)
     C.all.forEach(m => {
       if (m.hidden || m.isThird || m.r === 0) return;
       const vf = vfeed(m), cx = xOf(col[m.r]), cy = yOf(pos[m.key]);
       vf.forEach(f => {
         const fx = xOf(col[f.r]) + CW, fy = yOf(pos[f.key]), mx = fx + GX / 2;
-        bgp.push(P.path('M' + fx + ' ' + fy + 'H' + mx + 'V' + cy + 'H' + cx, { stroke: f.done ? th.c : th.m, sw: f.done ? 2.2 : 1.6 }));
+        bgp.push(P.path('M' + fx + ' ' + fy + 'H' + mx + 'V' + cy + 'H' + cx, { stroke: f.done ? th.c : '#cdb06a', sw: f.done ? 2 : 1.3 }));
       });
     });
     C.all.forEach(m => { if (m.hidden || m.isThird) return; card(m, xOf(col[m.r]), yOf(pos[m.key])); });
@@ -161,39 +163,40 @@
       maxY = Math.max(maxY, ty + CH / 2);
     }
     // kotak juara
-    const chx = xOf(nc), chH = 150, chy = fy - chH / 2 + 4;
+    const chx = xOf(nc), chH = 160, chy = fy - chH / 2 + 4;
     const champ = C.champion && C.champion.t ? C.champion.t.nama : '', ru = C.runnerUp && C.runnerUp.t ? C.runnerUp.t.nama : '', tp = C.thirdPlace && C.thirdPlace.t ? C.thirdPlace.t.nama : '';
-    pr.push(P.path('M' + (fx + CW) + ' ' + fy + 'H' + chx, { stroke: champ ? T.goldHi : th.m, sw: champ ? 2.6 : 1.6 }));
-    pr.push(P.rect(chx, chy + 4, CW, chH, { r: 16, fill: T.soft }));
-    pr.push(P.rect(chx, chy, CW, chH, { r: 16, fill: champ ? th.d : T.card, stroke: T.goldHi, sw: 2.4 }));
-    pr.push(P.img(g.TH.dataHref(g.TH.emblemSVG(L.kategori, { a: champ ? th.glow : th.m, b: th.c, l: champ ? '#fff7e0' : '#fff', k: champ ? th.c : th.d, s: 5 })), chx + CW - 78, chy + chH - 80, 80, 80, champ ? .28 : .16));
-    pr.push(P.path(trophy(chx + CW / 2, chy + 34, 11), { stroke: champ ? T.goldHi : th.d, sw: 2.6, cap: 'round' }));
-    pr.push(P.text(chx + CW / 2, chy + 82, 'JUARA 1', { size: 13, w: 800, f: 'd', fill: champ ? T.goldHi : th.d, a: 'middle' }));
-    pr.push(P.text(chx + CW / 2, chy + 108, fit(champ || 'Belum ada', 21, 800, 'd', CW - 30), { size: 21, w: 800, f: 'd', fill: champ ? '#fff8e4' : T.mute, a: 'middle' }));
-    const l2 = ru ? 'Juara 2: ' + ru : '', l3 = tp ? 'Juara 3: ' + tp : '';
-    if (ru) pr.push(P.text(chx + CW / 2, chy + 128, fit(l2, 11.5, 700, 'b', CW - 24), { size: 11.5, w: 700, fill: champ ? th.m : T.ink2, a: 'middle' }));
-    if (tp) pr.push(P.text(chx + CW / 2, chy + 143, fit(l3, 11.5, 700, 'b', CW - 24), { size: 11.5, w: 700, fill: champ ? th.m : T.ink2, a: 'middle' }));
+    const cx0 = chx + CW / 2;
+    pr.push(P.path('M' + (fx + CW) + ' ' + fy + 'H' + chx, { stroke: champ ? T.gold : '#cdb06a', sw: champ ? 2.4 : 1.3 }));
+    pr.push(P.rect(chx, chy + 5, CW, chH, { r: 12, fill: T.soft }));
+    pr.push(P.rect(chx, chy, CW, chH, { r: 12, fill: champ ? T.wine : T.card, stroke: T.gold, sw: 2 }));
+    pr.push(P.rect(chx + 6, chy + 6, CW - 12, chH - 12, { r: 8, fill: 'none', stroke: champ ? 'rgba(243,217,139,.45)' : 'rgba(212,168,71,.4)', sw: 1 }));
+    pr.push(P.img(icoHref(L.kategori, champ ? T.goldHi : th.c, 1.2), chx + CW - 82, chy + chH - 84, 78, 78, champ ? .2 : .1));
+    pr.push(P.path(trophy(cx0, chy + 38, 12), { stroke: champ ? T.goldHi : th.d, sw: 2.2, cap: 'round' }));
+    pr.push(P.text(cx0, chy + 88, 'JUARA 1', { size: 12, w: 400, f: 'd', fill: champ ? T.goldHi : th.d, a: 'middle', ls: 4 }));
+    pr.push(P.text(cx0, chy + 114, fit((champ || 'Belum ada').toUpperCase(), 19, 400, 'd', CW - 34, 1.6), { size: 19, w: 400, f: 'd', fill: champ ? '#fff6dc' : T.mute, a: 'middle', ls: 1.6 }));
+    if (ru) pr.push(P.text(cx0, chy + 136, fit('Juara 2: ' + ru, 11.5, 600, 'b', CW - 28), { size: 11.5, w: 600, fill: champ ? th.m : T.ink2, a: 'middle' }));
+    if (tp) pr.push(P.text(cx0, chy + 152, fit('Juara 3: ' + tp, 11.5, 600, 'b', CW - 28), { size: 11.5, w: 600, fill: champ ? th.m : T.ink2, a: 'middle' }));
     maxY = Math.max(maxY, chy + chH);
 
-    let W = Math.max(xOf(nc) + CW + PX, o.header ? 820 : 0), H = maxY + 40;
+    let W = Math.max(xOf(nc) + CW + PX, o.header ? 860 : 0), H = maxY + 44;
     const out = [];
-    if (o.bg) { out.push(P.rect(0, 0, W, H + (o.header ? 54 : 0), { fill: T.bg })); wm(out, L, W, H + (o.header ? 54 : 0), HEAD); }
+    if (o.bg) { out.push(P.rect(0, 0, W, H + (o.header ? 58 : 0), { fill: T.bg })); deco(out, L, W, H + (o.header ? 58 : 0), HEAD); }
     if (o.header) out.push.apply(out, header(L, W, o, 'bagan'));
     out.push.apply(out, names); out.push.apply(out, bgp); out.push.apply(out, pr);
-    if (o.header) { out.push.apply(out, footer(W, H + 6, o)); H += 54; }
+    if (o.header) { out.push.apply(out, footer(W, H + 8, o)); H += 58; }
     return { w: W, h: H, prims: out };
   }
 
   /* ---------- grup (khusus ekspor) ---------- */
   function layoutGroups(L, o) {
     o = o || {}; const BG = g.BG, tm = g.TH.get(L.kategori), n = L.grup.length, single = n === 1;
-    const cols = single ? 1 : Math.min(n, 4), cw = single ? 420 : 280, rh = 40, th = 56, gap = 26;
+    const cols = single ? 1 : Math.min(n, 4), cw = single ? 440 : 290, rh = 42, th = 60, gap = 28;
     const cards = L.grup.map((gr, i) => ({ gr, m: BG.members(L, i) }));
     const un = L.tim.filter(t => t.grup < 0 || t.grup >= n);
     if (un.length) cards.push({ gr: { nama: 'BELUM DIUNDI' }, m: un, muted: true });
-    const rowsOf = k => Math.ceil(cards.length / cols);
-    const HEAD = o.header ? 150 : 0, Y0 = HEAD + 24;
-    const heights = cards.map(c => th + Math.max(1, c.m.length) * rh + 14);
+    const rowsOf = () => Math.ceil(cards.length / cols);
+    const HEAD = o.header ? 156 : 0, Y0 = HEAD + 30;
+    const heights = cards.map(c => th + Math.max(1, c.m.length) * rh + 16);
     const rowH = []; for (let r = 0; r < rowsOf(); r++) rowH.push(Math.max.apply(null, heights.slice(r * cols, r * cols + cols)));
     const W = Math.max(PX * 2 + cols * cw + (cols - 1) * gap, o.header ? 980 : 0), x0 = (W - (cols * cw + (cols - 1) * gap)) / 2;
     const out = [], pr = [];
@@ -202,28 +205,29 @@
       for (let c = 0; c < cols; c++) {
         const k = r * cols + c; if (k >= cards.length) break;
         const cd = cards[k], x = x0 + c * (cw + gap), h = rowH[r];
-        pr.push(P.rect(x, y + 3, cw, h, { r: 14, fill: T.soft }));
-        pr.push(P.rect(x, y, cw, h, { r: 14, fill: T.card, stroke: tm.m, sw: 1.4 }));
-        pr.push(P.rect(x, y, cw, th, { r: 14, fill: cd.muted ? T.mute : tm.c }));
-        pr.push(P.rect(x, y + th - 14, cw, 14, { fill: cd.muted ? T.mute : tm.c }));
-        pr.push(P.text(x + 18, y + 36, fit(cd.gr.nama, 24, 800, 'd', cw - 70), { size: 24, w: 800, f: 'd', fill: '#fff8e4' }));
-        pr.push(P.text(x + cw - 18, y + 35, cd.m.length + ' tim', { size: 12, w: 800, f: 'd', fill: tm.l, a: 'end' }));
-        if (!cd.m.length) pr.push(P.text(x + 18, y + th + 26, 'Belum ada tim', { size: 13, w: 600, fill: T.mute, i: true }));
+        pr.push(P.rect(x, y + 4, cw, h, { r: 12, fill: T.soft }));
+        pr.push(P.rect(x, y, cw, h, { r: 12, fill: T.card, stroke: T.cardLine, sw: 1.3 }));
+        pr.push(P.rect(x, y, cw, th, { r: 12, fill: cd.muted ? '#8a7a62' : tm.d }));
+        pr.push(P.rect(x, y + th - 12, cw, 12, { fill: cd.muted ? '#8a7a62' : tm.d }));
+        pr.push(P.rect(x, y + th - 3, cw, 3, { fill: T.gold }));
+        pr.push(P.text(x + 22, y + 37, fit(cd.gr.nama.toUpperCase(), 21, 400, 'd', cw - 100, 2), { size: 21, w: 400, f: 'd', fill: T.goldHi, ls: 2 }));
+        pr.push(P.text(x + cw - 22, y + 36, cd.m.length + ' tim', { size: 12, w: 600, fill: tm.m, a: 'end' }));
+        if (!cd.m.length) pr.push(P.text(x + 22, y + th + 28, 'Belum ada tim', { size: 13, w: 500, fill: T.mute, i: true }));
         cd.m.forEach((t, i) => {
-          const ry = y + th + i * rh;
-          if (i) pr.push(P.path('M' + (x + 14) + ' ' + ry + 'H' + (x + cw - 14), { stroke: tm.m, sw: 1, cap: 'butt' }));
-          pr.push(P.rect(x + 14, ry + 8, 26, 24, { r: 7, fill: tm.l }));
-          pr.push(P.text(x + 27, ry + 25, String(i + 1), { size: 13, w: 800, f: 'd', fill: tm.d, a: 'middle' }));
-          pr.push(P.text(x + 52, ry + 26, fit(t.nama, 15, 700, 'b', cw - 70), { size: 15, w: 700 }));
+          const ry = y + th + 6 + i * rh;
+          if (i) pr.push(P.path('M' + (x + 18) + ' ' + ry + 'H' + (x + cw - 18), { stroke: T.line, sw: 1, cap: 'butt' }));
+          pr.push(P.path('M' + (x + 33) + ' ' + (ry + 9) + 'L' + (x + 44) + ' ' + (ry + 21) + 'L' + (x + 33) + ' ' + (ry + 33) + 'L' + (x + 22) + ' ' + (ry + 21) + 'Z', { fill: tm.l, stroke: T.gold, sw: 1.3, cap: 'butt' }));
+          pr.push(P.text(x + 33, ry + 25.5, String(i + 1), { size: 12, w: 800, fill: tm.d, a: 'middle' }));
+          pr.push(P.text(x + 58, ry + 26, fit(t.nama, 15, 600, 'b', cw - 80), { size: 15, w: 600 }));
         });
       }
       y += rowH[r] + gap;
     }
-    const H = y + 10;
-    if (o.bg) { out.push(P.rect(0, 0, W, H + (o.header ? 54 : 0), { fill: T.bg })); wm(out, L, W, H + (o.header ? 54 : 0), HEAD); }
+    const H = y + 6;
+    if (o.bg) { out.push(P.rect(0, 0, W, H + (o.header ? 58 : 0), { fill: T.bg })); deco(out, L, W, H + (o.header ? 58 : 0), HEAD); }
     if (o.header) out.push.apply(out, header(L, W, o, 'grup'));
     out.push.apply(out, pr);
-    let HH = H; if (o.header) { out.push.apply(out, footer(W, H + 6, o)); HH += 54; }
+    let HH = H; if (o.header) { out.push.apply(out, footer(W, H + 8, o)); HH += 58; }
     return { w: W, h: HH, prims: out };
   }
 
@@ -257,8 +261,8 @@
         if (p.stroke) { ctx.strokeStyle = p.stroke; ctx.lineWidth = p.sw; if (p.r) ctx.stroke(new Path2D(rr(p.x, p.y, p.w, p.h, p.r))); else ctx.strokeRect(p.x, p.y, p.w, p.h); }
       } else if (p.t === 'text') {
         ctx.font = (p.i ? 'italic ' : '') + p.w + ' ' + p.size + 'px ' + fam(p.f); ctx.fillStyle = p.fill;
-        ctx.textAlign = p.a === 'middle' ? 'center' : p.a === 'end' ? 'right' : 'left'; ctx.textBaseline = 'alphabetic';
-        ctx.fillText(p.s, p.x, p.y);
+        ctx.textAlign = p.a === 'middle' ? 'center' : p.a === 'end' ? 'right' : 'left'; ctx.textBaseline = 'alphabetic'; if ('letterSpacing' in ctx) ctx.letterSpacing = (p.ls || 0) + 'px';
+        ctx.fillText(p.s, p.x + (p.ls && p.a === 'middle' ? p.ls / 2 : 0), p.y);
       } else if (p.t === 'path') {
         ctx.strokeStyle = p.stroke; ctx.lineWidth = p.sw; ctx.lineCap = p.cap || 'round'; ctx.lineJoin = 'round'; ctx.stroke(new Path2D(p.d));
       } else if (p.t === 'img' && imgs && imgs[p.href]) { ctx.globalAlpha = p.op; ctx.drawImage(imgs[p.href], p.x, p.y, p.w, p.h); ctx.globalAlpha = 1; }
@@ -276,7 +280,7 @@
   function loadImg(src) { return new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
   function fonts() {
     if (!document.fonts || !document.fonts.load) return Promise.resolve();
-    return Promise.all(['800 20px "Big Shoulders Display"', '700 14px "Plus Jakarta Sans"', '800 14px "Plus Jakarta Sans"', '600 12px "Plus Jakarta Sans"'].map(f => document.fonts.load(f).catch(() => 0))).then(() => document.fonts.ready);
+    return Promise.all(['400 20px "MDF Display"', '700 14px "MDF Text"', '800 14px "MDF Text"', '600 12px "MDF Text"', '500 12px "MDF Text"'].map(f => document.fonts.load(f).catch(() => 0))).then(() => document.fonts.ready);
   }
   function statLine(L) {
     if (L.tipe === 'grup') return '';

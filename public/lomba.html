@@ -3,27 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f1e6cf">
+<meta name="theme-color" content="#2a0a10">
 <title>Bagan Lomba · MD FEST 2026</title>
 <link rel="icon" href="/brand/favicon.png"><link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preload" href="/fonts/display.woff" as="font" type="font/woff" crossorigin><link rel="preload" href="/fonts/text-600.woff" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="/css/bagan.css">
 </head>
 <body>
 <div class="app">
-  <header class="hdr"><div class="hdr-in">
+  <header class="hdr" id="hdr"><div class="hdr-in">
     <a class="stamp" href="/" aria-label="Semua lomba"><img src="/brand/mdfest.png" alt="MD FEST"></a>
     <a class="ht" href="/"><b>MD FEST 2026</b><small>Bagan &amp; hasil lomba</small></a>
     <a class="btn line sm hsb" href="/" data-ic="back"><span class="hs">Semua lomba</span></a>
   </div></header>
 
+  <section class="lh" id="lh"><div class="wrap lh-in"><div class="skel" style="min-height:150px;opacity:.15"></div></div></section>
+
   <main class="wrap">
-    <section class="lh" id="lh"><div class="skel" style="min-height:190px"></div></section>
-    <div class="tabs" id="tabs" role="tablist" hidden></div>
-    <div id="body" style="padding-top:14px"><div class="skel" style="min-height:300px"></div></div>
+    <div class="tabs plate" id="tabs" role="tablist" hidden></div>
+    <div id="body" style="padding-top:6px"><div class="skel" style="min-height:300px"></div></div>
   </main>
-  <footer class="ft"><span>© MD FEST 2026 · Manajemen Dakwah</span><a href="/admin">Panel panitia</a></footer>
+  <footer class="ft"><div><span style="display:flex;align-items:center;gap:12px"><img src="/brand/mdfest.png" alt=""><span>© MD FEST 2026 · Manajemen Dakwah</span></span><a href="/admin">Panel panitia</a></div></footer>
 </div>
 <script src="/js/engine.js"></script>
 <script src="/js/theme.js"></script>

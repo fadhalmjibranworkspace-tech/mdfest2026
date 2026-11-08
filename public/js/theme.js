@@ -1,85 +1,63 @@
 /* =====================================================================
-   MD FEST 2026 — tema per kategori lomba
-   Palet, emblem (ilustrasi SVG buatan sendiri), pola latar, dan banner.
-   Semua berupa string SVG murni (tanpa font/CSS eksternal) supaya ikut tercetak di PNG/PDF.
+   MD FEST 2026 — bahasa visual "Gilded Gala"
+   Maroon gelap + emas foil di atas kertas gading. Tiap lomba punya warna permata,
+   ikon garis (monoline) dan motif lapangannya sendiri.
+   Semua grafis berupa SVG murni, tanpa font/CSS luar, jadi ikut tercetak di PNG/PDF/SVG.
    ===================================================================== */
 (function (g) {
   'use strict';
-  const CREAM = '#fff7e0', INK = '#2b1f0c';
+  const GOLD = '#d4a847', GOLDHI = '#f3d98b', GOLDLO = '#8d6317', WINE = '#2a0a10', IVORY = '#f7efdc';
+
+  /* c = warna permata utama, d = versi gelap, l = tint terang, m = tint sedang, glow = cahaya */
   const THEMES = {
-    futsal:    { nama: 'Futsal',        c: '#2f7d57', d: '#1b4a34', l: '#e1ecd6', m: '#b4cfae', glow: '#8fd19c', motif: 'pitch' },
-    badminton: { nama: 'Badminton',     c: '#17808d', d: '#0c4b56', l: '#d8ebe8', m: '#a9cfd0', glow: '#7fd8e2', motif: 'court' },
-    debat:     { nama: 'Debat',         c: '#4a4aa3', d: '#2c2c74', l: '#e3e1f0', m: '#bab8de', glow: '#aeadf0', motif: 'dots' },
-    keilmuan:  { nama: 'Keilmuan',      c: '#b3282f', d: '#731820', l: '#f3dcd4', m: '#e0b2a7', glow: '#f2898e', motif: 'kawung' },
-    seni:      { nama: 'Seni & Dakwah', c: '#c0601f', d: '#7f3c0d', l: '#f6e2cb', m: '#e5bf9a', glow: '#f4b673', motif: 'staff' },
-    lainnya:   { nama: 'Lainnya',       c: '#b8862b', d: '#764f10', l: '#f3e5bf', m: '#dcc283', glow: '#f1d37e', motif: 'lattice' }
+    futsal:    { nama: 'Futsal',        c: '#1f7a55', d: '#0b3a2a', l: '#e2eddd', m: '#a9cdb6', glow: '#6fd3a0', motif: 'pitch' },
+    badminton: { nama: 'Badminton',     c: '#1b7a8c', d: '#0a3946', l: '#dcecea', m: '#a6d0d3', glow: '#72d8e6', motif: 'court' },
+    debat:     { nama: 'Debat',         c: '#5b43a8', d: '#2a1c5e', l: '#e6e1f1', m: '#bbb3df', glow: '#b3a5f5', motif: 'dots' },
+    keilmuan:  { nama: 'Keilmuan',      c: '#9c2233', d: '#4a0b17', l: '#f3ddd6', m: '#dcaba6', glow: '#f08a93', motif: 'kawung' },
+    seni:      { nama: 'Seni & Dakwah', c: '#b4581d', d: '#5a2608', l: '#f6e3cd', m: '#e2b896', glow: '#f5b277', motif: 'staff' },
+    lainnya:   { nama: 'Lainnya',       c: '#a97b25', d: '#4f340a', l: '#f3e7c6', m: '#d8c186', glow: '#f1d37e', motif: 'lattice' }
   };
   const get = k => THEMES[k] || THEMES.lainnya;
   const f1 = n => Math.round(n * 100) / 100;
   const poly = (cx, cy, r, n, rot) => { const a = []; for (let i = 0; i < n; i++) { const t = rot + i * 2 * Math.PI / n; a.push(f1(cx + r * Math.cos(t)) + ',' + f1(cy + r * Math.sin(t))); } return a.join(' '); };
+  const uri = svg => 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
+  const dataHref = svg => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 
-  /* ---------- emblem 200x200 ---------- */
-  function emblem(cat, p) {
-    p = Object.assign({ a: get(cat).c, b: get(cat).d, l: CREAM, k: INK, s: 5 }, p || {});
-    const A = p.a, B = p.b, L = p.l, K = p.k, S = p.s;
+  /* ---------- ikon garis 64x64 ---------- */
+  function icon(cat, k, sw) {
+    k = k || 'currentColor'; sw = sw || 2.2;
+    const A = '<g fill="none" stroke="' + k + '" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round">', Z = '</g>';
     switch (cat) {
       case 'futsal': {
-        const R = -Math.PI / 2;
-        let patches = '';
-        for (let i = 0; i < 5; i++) { const t = R + i * 2 * Math.PI / 5 + Math.PI / 5; patches += '<polygon points="' + poly(100 + 62 * Math.cos(t), 100 + 62 * Math.sin(t), 22, 5, t + Math.PI) + '" fill="' + K + '"/>'; }
-        let seams = ''; for (let i = 0; i < 5; i++) { const t = R + i * 2 * Math.PI / 5, x1 = 100 + 21 * Math.cos(t), y1 = 100 + 21 * Math.sin(t), x2 = 100 + 44 * Math.cos(t), y2 = 100 + 44 * Math.sin(t); seams += '<line x1="' + f1(x1) + '" y1="' + f1(y1) + '" x2="' + f1(x2) + '" y2="' + f1(y2) + '"/>'; }
-        return '<ellipse cx="100" cy="176" rx="52" ry="8" fill="' + B + '" opacity=".28"/>' +
-          '<g stroke="' + L + '" stroke-width="5" stroke-linecap="round" opacity=".75"><line x1="8" y1="86" x2="34" y2="86"/><line x1="2" y1="104" x2="30" y2="104"/><line x1="14" y1="122" x2="36" y2="122"/></g>' +
-          '<clipPath id="bc"><circle cx="106" cy="98" r="64"/></clipPath><g transform="translate(6 -2)"><circle cx="100" cy="100" r="64" fill="' + L + '" stroke="' + K + '" stroke-width="' + S + '"/>' +
-          '<g clip-path="url(#bc2)"></g><g>' + '<polygon points="' + poly(100, 100, 21, 5, R) + '" fill="' + K + '"/>' + '<g stroke="' + K + '" stroke-width="3.5" stroke-linecap="round">' + seams + '</g>' +
-          '<clipPath id="bc3"><circle cx="100" cy="100" r="62"/></clipPath><g clip-path="url(#bc3)">' + patches + '</g></g>' +
-          '<path d="M52 66 A56 56 0 0 1 96 40" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".55"/></g>';
+        const R = -Math.PI / 2; let s = '';
+        for (let i = 0; i < 5; i++) {
+          const a = R + i * 2 * Math.PI / 5, x1 = 32 + 7 * Math.cos(a), y1 = 32 + 7 * Math.sin(a), x2 = 32 + 14.5 * Math.cos(a), y2 = 32 + 14.5 * Math.sin(a);
+          s += '<line x1="' + f1(x1) + '" y1="' + f1(y1) + '" x2="' + f1(x2) + '" y2="' + f1(y2) + '"/>';
+          [-1, 1].forEach(d => { const b = a + d * 0.42; s += '<line x1="' + f1(x2) + '" y1="' + f1(y2) + '" x2="' + f1(32 + 22 * Math.cos(b)) + '" y2="' + f1(32 + 22 * Math.sin(b)) + '"/>'; });
+        }
+        return A + '<circle cx="32" cy="32" r="22"/><polygon points="' + poly(32, 32, 7, 5, R) + '"/>' + s + Z;
       }
-      case 'badminton': {
-        let strings = ''; for (let i = -3; i <= 3; i++) strings += '<line x1="' + (i * 10) + '" y1="-44" x2="' + (i * 10) + '" y2="44"/><line x1="-34" y1="' + (i * 12) + '" x2="34" y2="' + (i * 12) + '"/>';
-        let feathers = ''; for (let i = -3; i <= 3; i++) feathers += '<line x1="' + (i * 4.2) + '" y1="24" x2="' + (i * 10.6) + '" y2="-50"/>';
-        return '<g transform="translate(78 118) rotate(40)"><clipPath id="rk"><ellipse cx="0" cy="-8" rx="36" ry="46"/></clipPath>' +
-          '<rect x="-5" y="34" width="10" height="64" rx="5" fill="' + B + '"/><rect x="-6" y="70" width="12" height="30" rx="5" fill="' + K + '"/>' +
-          '<ellipse cx="0" cy="-8" rx="36" ry="46" fill="' + L + '" fill-opacity=".35" stroke="' + A + '" stroke-width="8"/>' +
-          '<g clip-path="url(#rk)" stroke="' + L + '" stroke-width="1.8" opacity=".9" transform="translate(0 -8)">' + strings + '</g>' +
-          '<ellipse cx="0" cy="-8" rx="36" ry="46" fill="none" stroke="' + B + '" stroke-width="2" opacity=".5"/></g>' +
-          '<g transform="translate(142 62) rotate(40)"><path d="M-16 24 L-46 -44 Q0 -66 46 -44 L16 24 Z" fill="' + L + '" stroke="' + K + '" stroke-width="' + (S - 1) + '" stroke-linejoin="round"/>' +
-          '<g stroke="' + B + '" stroke-width="2.4" opacity=".7">' + feathers + '</g><path d="M-42 -40 Q0 -58 42 -40" fill="none" stroke="' + A + '" stroke-width="6" stroke-linecap="round"/>' +
-          '<circle cx="0" cy="34" r="17" fill="' + A + '" stroke="' + K + '" stroke-width="' + (S - 1) + '"/><path d="M-9 28 Q0 22 9 28" fill="none" stroke="' + L + '" stroke-width="3" stroke-linecap="round" opacity=".8"/></g>';
-      }
+      case 'badminton':
+        return A + '<g transform="translate(23 41) rotate(-38)"><clipPath id="rkc"><ellipse cx="0" cy="-11" rx="9.5" ry="13"/></clipPath><ellipse cx="0" cy="-11" rx="9.5" ry="13"/>' +
+          '<g clip-path="url(#rkc)" stroke-width="' + f1(sw * .55) + '"><path d="M-4.5 -25V3M0 -25V3M4.5 -25V3M-11 -17H11M-11 -11H11M-11 -5H11"/></g><path d="M0 2V20"/><rect x="-2" y="14" width="4" height="10" rx="2"/></g>' +
+          '<g transform="translate(43 22) rotate(40)"><circle cx="0" cy="10.5" r="4.2"/><path d="M-3.6 7.5 -9.5 -12Q0 -17.5 9.5 -12L3.6 7.5"/><path d="M-1.8 7.5 -4.6 -14M0 7.5V-15.2M1.8 7.5 4.6 -14" stroke-width="' + f1(sw * .55) + '"/></g>' + Z;
       case 'debat':
-        return '<path d="M30 38 h92 a18 18 0 0 1 18 18 v38 a18 18 0 0 1 -18 18 h-48 l-26 22 v-22 h-18 a18 18 0 0 1 -18 -18 v-38 a18 18 0 0 1 18 -18z" fill="' + A + '" stroke="' + K + '" stroke-width="' + S + '" stroke-linejoin="round"/>' +
-          '<g stroke="' + L + '" stroke-width="7" stroke-linecap="round"><line x1="46" y1="62" x2="116" y2="62"/><line x1="46" y1="82" x2="94" y2="82"/></g>' +
-          '<path d="M78 112 h92 a18 18 0 0 1 18 18 v28 a18 18 0 0 1 -18 18 h-16 v22 l-26 -22 h-50 a18 18 0 0 1 -18 -18 v-28 a18 18 0 0 1 18 -18z" fill="' + L + '" stroke="' + K + '" stroke-width="' + S + '" stroke-linejoin="round"/>' +
-          '<g stroke="' + B + '" stroke-width="7" stroke-linecap="round"><line x1="94" y1="136" x2="164" y2="136"/><line x1="94" y1="154" x2="140" y2="154"/></g>' +
-          '<g fill="' + L + '" stroke="' + K + '" stroke-width="3"><circle cx="158" cy="30" r="14"/></g><path d="M151 30 l5 5 9 -10" fill="none" stroke="' + A + '" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>';
-      case 'keilmuan': {
-        return '<g transform="translate(100 84)"><circle r="56" fill="' + A + '" stroke="' + K + '" stroke-width="' + S + '"/>' +
-          '<g fill="none" stroke="' + L + '" stroke-width="3" opacity=".85"><ellipse rx="24" ry="56"/><ellipse rx="44" ry="56"/><line x1="-56" y1="0" x2="56" y2="0"/><path d="M-50 -26 H50 M-50 26 H50"/></g>' +
-          '<path d="M-30 -20 q8 -16 24 -14 q6 10 -2 18 q-8 6 -4 14 q-10 4 -18 -6z M18 8 q14 -8 26 2 q-2 14 -14 18 q-10 -6 -12 -20z" fill="' + B + '" opacity=".55"/></g>' +
-          '<path d="M24 154 q38 -14 76 6 q38 -20 76 -6 v26 q-38 -14 -76 6 q-38 -20 -76 -6z" fill="' + L + '" stroke="' + K + '" stroke-width="' + S + '" stroke-linejoin="round"/>' +
-          '<line x1="100" y1="160" x2="100" y2="186" stroke="' + K + '" stroke-width="3.5"/><g stroke="' + A + '" stroke-width="3.5" stroke-linecap="round" opacity=".7"><line x1="40" y1="162" x2="84" y2="170"/><line x1="40" y1="172" x2="84" y2="180"/><line x1="116" y1="170" x2="160" y2="162"/><line x1="116" y1="180" x2="160" y2="172"/></g>' +
-          '<polygon points="' + poly(166, 36, 15, 5, -Math.PI / 2).replace(/,/g, ',') + '" fill="' + L + '" stroke="' + K + '" stroke-width="3" stroke-linejoin="round"/>';
-      }
+        return A + '<path d="M10 11h30a6 6 0 0 1 6 6v13a6 6 0 0 1-6 6H24l-8 7v-7h-6a6 6 0 0 1-6-6V17a6 6 0 0 1 6-6z"/><path d="M52 27h2a6 6 0 0 1 6 6v13a6 6 0 0 1-6 6h-4v7l-8-7H30a6 6 0 0 1-5-2.6" transform="translate(-4 3)"/>' +
+          '<path d="M16 20h18M16 27h11" stroke-width="' + f1(sw * .8) + '"/>' + Z;
+      case 'keilmuan':
+        return A + '<path d="M32 19Q20 12 7 16v33q13-4 25 2 12-6 25-2V16Q44 12 32 19z"/><path d="M32 19v32"/><path d="M13 25q8-1.5 14 1.5M13 33q8-1.5 14 1.5M51 25q-8-1.5-14 1.5M51 33q-8-1.5-14 1.5" stroke-width="' + f1(sw * .7) + '"/>' +
+          '<path d="M32 3.5l1.7 4.3 4.3 1.7-4.3 1.7L32 15.5l-1.7-4.3L26 9.5l4.3-1.7z" stroke-width="' + f1(sw * .8) + '"/>' + Z;
       case 'seni':
-        return '<g transform="translate(78 0)"><rect x="-22" y="26" width="44" height="76" rx="22" fill="' + A + '" stroke="' + K + '" stroke-width="' + S + '"/>' +
-          '<g stroke="' + L + '" stroke-width="3" opacity=".85" stroke-linecap="round"><line x1="-12" y1="46" x2="12" y2="46"/><line x1="-14" y1="58" x2="14" y2="58"/><line x1="-14" y1="70" x2="14" y2="70"/><line x1="-12" y1="82" x2="12" y2="82"/></g>' +
-          '<path d="M-38 78 v10 a38 38 0 0 0 76 0 v-10" fill="none" stroke="' + K + '" stroke-width="' + S + '" stroke-linecap="round"/><line x1="0" y1="126" x2="0" y2="160" stroke="' + K + '" stroke-width="' + S + '" stroke-linecap="round"/>' +
-          '<rect x="-30" y="160" width="60" height="12" rx="6" fill="' + B + '" stroke="' + K + '" stroke-width="4"/></g>' +
-          '<g fill="' + B + '" stroke="' + K + '" stroke-width="3.5" stroke-linejoin="round"><ellipse cx="146" cy="104" rx="13" ry="10" transform="rotate(-20 146 104)"/><path d="M157 102 V46 q22 6 24 28" fill="none" stroke-linecap="round" stroke-width="5"/>' +
-          '<ellipse cx="124" cy="136" rx="10" ry="8" transform="rotate(-20 124 136)" fill="' + L + '"/><path d="M133 134 V96" fill="none" stroke-linecap="round" stroke-width="4.5"/></g>' +
-          '<g fill="' + L + '" stroke="' + K + '" stroke-width="2.5" stroke-linejoin="round"><polygon points="28,44 32,56 44,60 32,64 28,76 24,64 12,60 24,56"/><polygon points="170,128 173,136 181,139 173,142 170,150 167,142 159,139 167,136" transform="translate(-4 8)"/></g>';
+        return A + '<rect x="22" y="6" width="14" height="28" rx="7"/><path d="M17 27v3a12 12 0 0 0 24 0v-3M29 42v11M21 54h16"/><path d="M22 14h14M22 20h14M22 26h14" stroke-width="' + f1(sw * .6) + '"/>' +
+          '<circle cx="49" cy="45" r="4.3"/><path d="M53.3 45V24q6 1 6.5 8"/>' + Z;
       default:
-        return '<path d="M52 32 h96 v52 a48 48 0 0 1 -96 0z" fill="' + A + '" stroke="' + K + '" stroke-width="' + S + '" stroke-linejoin="round"/>' +
-          '<path d="M52 44 h-22 v18 a26 26 0 0 0 26 26 M148 44 h22 v18 a26 26 0 0 1 -26 26" fill="none" stroke="' + K + '" stroke-width="' + S + '" stroke-linecap="round"/>' +
-          '<path d="M100 132 v22" stroke="' + K + '" stroke-width="' + (S + 3) + '" stroke-linecap="round"/><path d="M68 156 h64 l8 22 h-80z" fill="' + B + '" stroke="' + K + '" stroke-width="' + S + '" stroke-linejoin="round"/>' +
-          '<polygon points="' + poly(100, 72, 22, 5, -Math.PI / 2) + '" fill="' + L + '" stroke="' + K + '" stroke-width="3.5" stroke-linejoin="round"/>' +
-          '<path d="M66 44 q-4 30 14 56" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".4"/>';
+        return A + '<path d="M20 8h24v15a12 12 0 0 1-24 0z"/><path d="M20 12h-8v6a8 8 0 0 0 8 8M44 12h8v6a8 8 0 0 1-8 8"/><path d="M32 35v10M24 45h16l2 9H22z"/><path d="M32 15l2.3 4.7 5.2.7-3.8 3.6.9 5.1-4.6-2.4-4.6 2.4.9-5.1-3.8-3.6 5.2-.7z" stroke-width="' + f1(sw * .75) + '"/>' + Z;
     }
   }
-  const emblemSVG = (cat, p, extra) => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"' + (extra || '') + '>' + emblem(cat, p) + '</svg>';
+  const iconSVG = (cat, k, sw, extra) => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"' + (extra || '') + '>' + icon(cat, k, sw) + '</svg>';
+  const emblemSVG = (cat, p) => iconSVG(cat, (p && p.k) || GOLD, (p && p.s) || 2.2);
 
-  /* ---------- pola latar (ubin) ---------- */
+  /* ---------- motif lapangan (ubin) ---------- */
   function pattern(cat, col, op) {
     const t = get(cat), c = col || t.c, o = op == null ? .5 : op;
     const W = { pitch: [180, 120], court: [160, 110], dots: [34, 34], kawung: [96, 96], staff: [130, 70], lattice: [64, 64] }[t.motif];
@@ -87,49 +65,72 @@
     switch (t.motif) {
       case 'pitch': body = '<rect x="6" y="6" width="168" height="108" rx="3"/><line x1="90" y1="6" x2="90" y2="114"/><circle cx="90" cy="60" r="22"/><circle cx="90" cy="60" r="2.5" fill="' + c + '"/><rect x="6" y="36" width="22" height="48"/><rect x="152" y="36" width="22" height="48"/>'; break;
       case 'court': body = '<rect x="8" y="8" width="144" height="94"/><line x1="8" y1="55" x2="152" y2="55" stroke-dasharray="4 4"/><line x1="8" y1="26" x2="152" y2="26"/><line x1="8" y1="84" x2="152" y2="84"/><line x1="80" y1="8" x2="80" y2="26"/><line x1="80" y1="84" x2="80" y2="102"/><line x1="44" y1="8" x2="44" y2="102"/><line x1="116" y1="8" x2="116" y2="102"/>'; break;
-      case 'dots': body = '<circle cx="8" cy="8" r="2.4" fill="' + c + '" stroke="none"/><circle cx="25" cy="25" r="1.4" fill="' + c + '" stroke="none"/>'; break;
+      case 'dots': body = '<circle cx="8" cy="8" r="2.2" fill="' + c + '" stroke="none"/><circle cx="25" cy="25" r="1.3" fill="' + c + '" stroke="none"/>'; break;
       case 'kawung': { const e = (x, y, r) => '<ellipse cx="' + x + '" cy="' + y + '" rx="' + r[0] + '" ry="' + r[1] + '"/>'; body = e(48, 24, [11, 24]) + e(48, 72, [11, 24]) + e(24, 48, [24, 11]) + e(72, 48, [24, 11]) + '<circle cx="48" cy="48" r="3" fill="' + c + '"/><circle cx="0" cy="0" r="3" fill="' + c + '"/><circle cx="96" cy="0" r="3" fill="' + c + '"/><circle cx="0" cy="96" r="3" fill="' + c + '"/><circle cx="96" cy="96" r="3" fill="' + c + '"/>'; break; }
       case 'staff': body = '<g><line x1="0" y1="16" x2="130" y2="16"/><line x1="0" y1="24" x2="130" y2="24"/><line x1="0" y1="32" x2="130" y2="32"/><line x1="0" y1="40" x2="130" y2="40"/><line x1="0" y1="48" x2="130" y2="48"/></g><ellipse cx="42" cy="36" rx="5.5" ry="4" fill="' + c + '" transform="rotate(-20 42 36)"/><line x1="46.5" y1="34" x2="46.5" y2="10"/><ellipse cx="96" cy="44" rx="5.5" ry="4" fill="' + c + '" transform="rotate(-20 96 44)"/><line x1="100.5" y1="42" x2="100.5" y2="18"/>'; break;
       default: body = '<path d="M32 4 L60 32 L32 60 L4 32z"/><circle cx="32" cy="32" r="2.4" fill="' + c + '"/>';
     }
-    return { w: W[0], h: W[1], svg: '<g fill="none" stroke="' + c + '" stroke-width="1.6" stroke-opacity="' + o + '" fill-opacity="' + o + '">' + body + '</g>' };
+    return { w: W[0], h: W[1], svg: '<g fill="none" stroke="' + c + '" stroke-width="1.2" stroke-opacity="' + o + '" fill-opacity="' + o + '">' + body + '</g>' };
   }
-  const uri = svg => 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
   const patternURL = (cat, col, op, scale) => {
     const p = pattern(cat, col, op), s = scale || 1;
     return uri('<svg xmlns="http://www.w3.org/2000/svg" width="' + p.w * s + '" height="' + p.h * s + '" viewBox="0 0 ' + p.w + ' ' + p.h + '">' + p.svg + '</svg>');
   };
 
-  /* ---------- banner (hero kartu / halaman / header ekspor) ---------- */
+  /* ---------- kisi emas (latar umum) ---------- */
+  function lattice(col, op, sz) {
+    sz = sz || 72;
+    return '<g fill="none" stroke="' + col + '" stroke-opacity="' + op + '" stroke-width="1"><circle cx="36" cy="36" r="30"/><path d="M36 6 66 36 36 66 6 36z"/><path d="M36 20 52 36 36 52 20 36z"/><circle cx="36" cy="36" r="2" fill="' + col + '" fill-opacity="' + op + '"/><path d="M0 0 6 6M72 0 66 6M0 72 6 66M72 72 66 66"/></g>';
+  }
+  const latURL = (col, op, sz) => uri('<svg xmlns="http://www.w3.org/2000/svg" width="' + (sz || 72) + '" height="' + (sz || 72) + '" viewBox="0 0 72 72">' + lattice(col, op) + '</svg>');
+
+  /* ---------- ornamen ---------- */
+  const corner = (rot, col) => '<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34"><g transform="rotate(' + rot + ' 17 17)" fill="none" stroke="' + col + '" stroke-width="1.2" stroke-linecap="round"><path d="M2 32V11Q2 2 11 2H32"/><path d="M7 32V13Q7 7 13 7H32" stroke-opacity=".5"/><path d="M2 2 11 11" stroke-opacity=".0"/><path d="M13 13 9.5 9.5 13 6 16.5 9.5z" fill="' + col + '" stroke="none"/></g></svg>';
+  const scallop = () => '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="22" viewBox="0 0 96 22"><path d="M0 0H96V4C80 4 60 8 48 22 36 8 16 4 0 4Z" fill="#000"/></svg>';
+  const rule = col => '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="12" viewBox="0 0 40 12"><g fill="' + col + '"><path d="M20 1 25 6 20 11 15 6z"/><circle cx="6" cy="6" r="1.6"/><circle cx="34" cy="6" r="1.6"/></g></svg>';
+
+  /* ---------- banner ekspor (dipakai di header PNG/PDF/SVG) ---------- */
   function bannerSVG(cat, W, H, o) {
-    o = o || {}; const t = get(cat), p = pattern(cat, '#ffffff', o.pop == null ? .22 : o.pop);
-    const id = 'bn' + cat, es = Math.min(H * (o.es || .95), 300), ex = o.ex == null ? W - es * .62 : o.ex, ey = (H - es) / 2 + (o.ey || 0);
-    const sparkle = (x, y, r, op) => '<polygon points="' + x + ',' + (y - r) + ' ' + (x + r * .28) + ',' + (y - r * .28) + ' ' + (x + r) + ',' + y + ' ' + (x + r * .28) + ',' + (y + r * .28) + ' ' + x + ',' + (y + r) + ' ' + (x - r * .28) + ',' + (y + r * .28) + ' ' + (x - r) + ',' + y + ' ' + (x - r * .28) + ',' + (y - r * .28) + '" fill="#fff" opacity="' + op + '"/>';
-    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="' + (o.par || 'xMaxYMid slice') + '">' +
-      '<defs><linearGradient id="' + id + 'g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + t.d + '"/><stop offset=".62" stop-color="' + t.c + '"/><stop offset="1" stop-color="' + t.c + '"/></linearGradient>' +
-      '<radialGradient id="' + id + 'r" cx=".82" cy=".4" r=".55"><stop offset="0" stop-color="' + t.glow + '" stop-opacity=".55"/><stop offset="1" stop-color="' + t.glow + '" stop-opacity="0"/></radialGradient>' +
-      '<pattern id="' + id + 'p" width="' + p.w + '" height="' + p.h + '" patternUnits="userSpaceOnUse" patternTransform="rotate(-8)">' + p.svg + '</pattern></defs>' +
+    o = o || {}; const t = get(cat), id = 'bn' + cat, es = Math.min(H * 1.05, 220), ex = o.ex == null ? W - es - 56 : o.ex, ey = (H - es) / 2;
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
+      '<defs><linearGradient id="' + id + 'g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + WINE + '"/><stop offset=".55" stop-color="' + t.d + '"/><stop offset="1" stop-color="' + t.c + '"/></linearGradient>' +
+      '<radialGradient id="' + id + 'r" cx=".86" cy=".45" r=".5"><stop offset="0" stop-color="' + t.glow + '" stop-opacity=".5"/><stop offset="1" stop-color="' + t.glow + '" stop-opacity="0"/></radialGradient>' +
+      '<linearGradient id="' + id + 'f" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="' + GOLDLO + '"/><stop offset=".5" stop-color="' + GOLDHI + '"/><stop offset="1" stop-color="' + GOLDLO + '"/></linearGradient>' +
+      '<pattern id="' + id + 'p" width="72" height="72" patternUnits="userSpaceOnUse">' + lattice(GOLDHI, .16) + '</pattern></defs>' +
       '<rect width="' + W + '" height="' + H + '" fill="url(#' + id + 'g)"/><rect width="' + W + '" height="' + H + '" fill="url(#' + id + 'p)"/><rect width="' + W + '" height="' + H + '" fill="url(#' + id + 'r)"/>' +
-      '<path d="M0 ' + (H - 5) + ' H' + W + '" stroke="#e8c06a" stroke-width="5" opacity=".95"/>' +
-      sparkle(ex - es * .18, ey + es * .2, es * .06, .8) + sparkle(ex + es * 1.02, ey + es * .12, es * .045, .6) + sparkle(ex + es * .98, ey + es * .86, es * .05, .7) +
-      '<g transform="translate(' + f1(ex) + ' ' + f1(ey) + ') scale(' + f1(es / 200) + ')" opacity=".97">' + emblem(cat, { a: '#fff7e0', b: t.glow, l: '#ffffff', k: t.d, s: 5 }) + '</g></svg>';
+      '<g transform="translate(' + f1(ex) + ' ' + f1(ey) + ') scale(' + f1(es / 64) + ')" opacity=".5">' + icon(cat, GOLDHI, 1.1) + '</g>' +
+      '<rect x="0" y="' + (H - 4) + '" width="' + W + '" height="4" fill="url(#' + id + 'f)"/>' +
+      '<rect x="14" y="14" width="' + (W - 28) + '" height="' + (H - 32) + '" rx="3" fill="none" stroke="' + GOLD + '" stroke-opacity=".55"/></svg>';
   }
   const bannerURL = (cat, W, H, o) => uri(bannerSVG(cat, W || 1200, H || 360, o));
-  const dataHref = svg => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 
-  /* ---------- helper CSS vars ---------- */
+  /* ---------- vars & lencana ---------- */
   const vars = cat => { const t = get(cat); return '--ca:' + t.c + ';--ca2:' + t.d + ';--cat:' + t.l + ';--cam:' + t.m + ';--cag:' + t.glow + ';'; };
-  /* lencana bulat berisi emblem (untuk filter & kartu) */
-  const badge = (cat, size) => '<span class="eb" style="' + vars(cat) + (size ? 'width:' + size + 'px;height:' + size + 'px;' : '') + '">' + emblemSVG(cat, { a: get(cat).c, b: get(cat).d, l: '#fff7e0', k: '#2b1f0c', s: 6 }) + '</span>';
+  const badge = (cat, size) => '<span class="eb" style="' + vars(cat) + (size ? '--s:' + size + 'px;' : '') + '">' + iconSVG(cat, 'currentColor', 2.1, ' aria-hidden="true"') + '</span>';
 
-  const bc = {};
+  /* ---------- tema global (var CSS berisi data-URL) ---------- */
+  const cache = {};
   function paint(root) {
     (root || document).querySelectorAll('[data-bn]').forEach(el => {
-      const a = el.dataset.bn.split(','), k = el.dataset.bn; bc[k] = bc[k] || bannerURL(a[0], +a[1], +a[2], { es: a[3] ? +a[3] : .95 }); el.style.backgroundImage = bc[k];
+      const k = el.dataset.bn; cache[k] = cache[k] || [uri(iconSVG(k, GOLDHI, 1.1)), patternURL(k, GOLDHI, .22, 1)];
+      el.style.setProperty('--ico', cache[k][0]); el.style.setProperty('--mot', cache[k][1]);
     });
     (root || document).querySelectorAll('[data-pat]').forEach(el => {
-      const a = el.dataset.pat.split(','); el.style.setProperty('--pat', patternURL(a[0], a[1] || null, a[2] ? +a[2] : .35, a[3] ? +a[3] : 1));
+      const a = el.dataset.pat.split(','); el.style.setProperty('--pat', patternURL(a[0], a[1] || GOLDLO, a[2] ? +a[2] : .22, a[3] ? +a[3] : 1));
     });
   }
-  g.TH = { paint, THEMES, get, emblem, emblemSVG, pattern, patternURL, bannerSVG, bannerURL, dataHref, vars, badge, CREAM };
+  function init() {
+    const s = document.documentElement.style;
+    s.setProperty('--lat', latURL(GOLDLO, .13));
+    s.setProperty('--latd', latURL(GOLDHI, .15));
+    s.setProperty('--c-tl', uri(corner(0, GOLD))); s.setProperty('--c-tr', uri(corner(90, GOLD)));
+    s.setProperty('--c-br', uri(corner(180, GOLD))); s.setProperty('--c-bl', uri(corner(270, GOLD)));
+    s.setProperty('--scal', uri(scallop()));
+    s.setProperty('--rule', uri(rule(GOLD)));
+    const h = document.getElementById('hdr');
+    if (h) { const f = () => h.classList.toggle('sc', window.scrollY > 24); f(); window.addEventListener('scroll', f, { passive: true }); }
+  }
+  init();
+
+  g.TH = { THEMES, get, icon, iconSVG, emblemSVG, pattern, patternURL, latURL, bannerSVG, bannerURL, dataHref, vars, badge, paint, GOLD, GOLDHI, GOLDLO, WINE, IVORY };
 })(window);

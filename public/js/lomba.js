@@ -14,20 +14,20 @@
     return '<div class="pod">' + w.map(p => '<div class="pd p' + p[0] + '"><span class="md">' + p[0] + '</span><b>' + F.esc(p[1]) + '</b><i><em>' + ['', 'Juara 1', 'Juara 2', 'Juara 3'][p[0]] + '</em></i></div>').join('') + '</div>';
   }
   function head() {
-    const S = BG.summary(L), t = TH.get(L.kategori), pct = S.total ? Math.round(S.done / S.total * 100) : 0;
+    const S = BG.summary(L), pct = S.total ? Math.round(S.done / S.total * 100) : 0;
     document.querySelector('.app').style.cssText = TH.vars(L.kategori);
     document.body.dataset.cat = L.kategori;
     const meta = [S.tim + ' peserta'];
-    if (L.tipe === 'bagan') meta.push(S.done + '/' + S.total + ' laga');
+    if (L.tipe === 'bagan') meta.push(S.done + ' dari ' + S.total + ' laga selesai');
     if (L.cfg.lokasi) meta.push(L.cfg.lokasi);
-    $('lh').innerHTML = '<div class="lh-bn" data-bn="' + L.kategori + ',1200,260,.72">' +
-      '<div class="lh-t"><div class="meta"><span class="bd">' + F.esc(F.kat(L.kategori)) + '</span><span class="bd">' + (L.tipe === 'bagan' ? 'Bagan eliminasi' : 'Pembagian grup') + '</span>' +
-      (S.lives && S.lives.length ? '<span class="bd lv"><i></i>Live</span>' : '') + (S.champion ? '<span class="bd ok">Selesai</span>' : '') + '</div>' +
-      '<h1 class="disp">' + F.esc(L.nama) + '</h1>' +
+    const lh = $('lh'); lh.dataset.bn = L.kategori;
+    lh.innerHTML = '<div class="wrap lh-in"><div class="lh-top">' + TH.badge(L.kategori) + '<div class="meta"><span class="bd">' + F.esc(F.kat(L.kategori)) + '</span><span class="bd">' + (L.tipe === 'bagan' ? 'Bagan eliminasi' : 'Pembagian grup') + '</span>' +
+      (S.lives && S.lives.length ? '<span class="bd lv"><i></i>Live</span>' : '') + (S.champion ? '<span class="bd ok">Selesai</span>' : '') + '</div></div>' +
+      '<h1>' + F.esc(L.nama) + '</h1>' +
       '<div class="sub">' + (L.cfg.subjudul ? F.esc(L.cfg.subjudul) + ' · ' : '') + meta.map(F.esc).join(' · ') + '</div>' +
-      (L.tipe === 'bagan' ? '<div class="lh-p"><div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div><span>' + pct + '%</span></div>' : '') + '</div></div>' +
-      (C && C.champion && C.champion.t ? podium(C) : '');
-    TH.paint($('lh'));
+      (L.tipe === 'bagan' ? '<div class="lh-p"><div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div><span>' + pct + '%</span></div>' : '') +
+      (C && C.champion && C.champion.t ? podium(C) : '') + '</div>';
+    TH.paint(document);
     document.title = L.nama + ' · MD FEST 2026';
   }
   function toolbar() {
@@ -42,7 +42,7 @@
       '<div class="zoom noprint"><button class="btn line ib sm" id="zo" type="button" aria-label="Perkecil" data-ic="zout"></button><span class="z">100%</span><button class="btn line ib sm" id="zi" type="button" aria-label="Perbesar" data-ic="zin"></button><button class="btn line ib sm" id="zf" type="button" aria-label="Pas layar" data-ic="fit"></button></div></div>' +
       '<div class="hintbar noprint">' + F.ic('info') + '<span>Geser untuk menjelajah, cubit atau tombol +/− untuk zoom, ketuk pertandingan untuk detail.</span></div>';
     F.icons($('body')); wireBar();
-    $('stage').dataset.pat = L.kategori + ',,.28,1'; TH.paint($('stage'));
+    $('stage').dataset.pat = L.kategori + ',,.2,1'; TH.paint($('stage'));
     viewer = BGV.mount($('stage'), { onPick: matchSheet }); viewer.render(L);
   }
   function viewGrup() {
@@ -51,7 +51,7 @@
     let h = toolbar() + '<div class="glist' + (one ? ' one' : '') + '">';
     L.grup.forEach((g, i) => {
       const m = BG.members(L, i);
-      h += '<section class="card gc"><h3>' + F.esc(g.nama) + '<small>' + m.length + ' tim</small></h3><ol>' + (m.length ? m.map((t, k) => '<li><b>' + (k + 1) + '</b>' + F.esc(t.nama) + '</li>').join('') : '<li class="hint">Belum ada tim</li>') + '</ol></section>';
+      h += '<section class="card gc fr"><h3>' + F.esc(g.nama) + '<small>' + m.length + ' tim</small></h3><ol>' + (m.length ? m.map((t, k) => '<li><b>' + (k + 1) + '</b>' + F.esc(t.nama) + '</li>').join('') : '<li class="hint">Belum ada tim</li>') + '</ol></section>';
     });
     h += '</div>';
     if (un.length) h += '<div class="sec"><h2>Belum diundi</h2><span>' + un.length + ' tim</span></div><div class="teams">' + un.map(t => '<div class="t">' + F.esc(t.nama) + '</div>').join('') + '</div>';

@@ -18,21 +18,18 @@
       '<span class="tk-r"><b>' + F.esc(BG.teamName(m.a, '?')) + ' <u>vs</u> ' + F.esc(BG.teamName(m.b, '?')) + '</b><small>' + F.esc(L.nama) + ' · ' + F.esc(m.label) + '</small></span></a>';
   }
   function card(L, i) {
-    const S = BG.summary(L), cat = F.kat(L.kategori), t = TH.get(L.kategori);
+    const S = BG.summary(L), cat = F.kat(L.kategori);
     let body;
     if (S.type === 'bagan') {
       const pct = S.total ? Math.round(S.done / S.total * 100) : 0;
-      body = '<div class="meta"><span>' + S.tim + ' tim</span><span>' + S.done + '/' + S.total + ' laga</span><span class="pc">' + pct + '%</span></div><div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
+      body = '<div class="meta"><span>' + S.tim + ' tim</span><span>' + S.done + ' dari ' + S.total + ' laga</span><span class="pc">' + pct + '%</span></div><div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
         (S.champion ? '<div class="champ">' + F.ic('trophy') + '<span>Juara 1</span><b>' + F.esc(S.champion) + '</b></div>' : '');
     } else body = '<div class="meta"><span>' + S.tim + ' tim</span><span>' + (S.groups === 1 ? 'Urutan tampil' : S.groups + ' grup') + '</span></div>';
-    return '<a class="lc" style="--i:' + i + ';' + TH.vars(L.kategori) + '" href="/lomba?id=' + encodeURIComponent(L.id) + '">' +
-      '<div class="lc-bn" data-bn="' + L.kategori + ',640,150,.9"><span class="lc-k">' + F.esc(cat) + '</span>' + (S.lives.length ? '<span class="lc-live"><i></i>LIVE</span>' : '') + '</div>' +
+    const st = S.lives.length ? '<span class="lc-st lv"><i></i>Live</span>' : S.champion ? '<span class="lc-st">Selesai</span>' : '';
+    return '<a class="lc fr" style="' + TH.vars(L.kategori) + '" href="/lomba?id=' + encodeURIComponent(L.id) + '">' +
+      '<div class="lc-top" data-bn="' + L.kategori + '"><span class="lc-k">' + F.esc(cat) + '</span>' + st + '</div>' +
+      '<span class="lc-eb">' + TH.badge(L.kategori) + '</span>' +
       '<div class="lc-b"><h3>' + F.esc(L.nama) + '</h3><div class="hint">' + F.esc(L.cfg.subjudul || (S.type === 'bagan' ? 'Bagan eliminasi' : 'Pembagian grup')) + '</div>' + body + '</div></a>';
-  }
-  function art() {
-    if (artDone) return; artDone = true;
-    const ks = ['futsal', 'badminton', 'debat', 'keilmuan', 'seni', 'lainnya'];
-    $('art').innerHTML = ks.map((k, i) => '<span style="--r:' + [-14, 10, -6, 16, -10, 8][i] + 'deg;--d:' + i + '">' + TH.emblemSVG(k, { a: '#f3d68a', b: '#b8862b', l: '#fff4d2', k: '#2b1f0c', s: 6 }) + '</span>').join('');
   }
 
   function render() {
@@ -41,7 +38,6 @@
     if (P.judul) $('jd').innerHTML = F.esc(P.judul).replace(/\\n|\n/g, '<br>');
     if (P.subjudul) $('sj').textContent = P.subjudul;
     if (P.pengumuman) { $('nt').hidden = false; $('nt').innerHTML = F.ic('info') + '<span>' + F.esc(P.pengumuman) + '</span>'; } else $('nt').hidden = true;
-    art();
     const all = d.lomba.map(BG.fix);
     const lives = [], nexts = []; let tot = 0, dn = 0;
     all.forEach(L => { if (L.tipe !== 'bagan') return; const S = BG.summary(L); tot += S.total; dn += S.done; S.lives.forEach(m => lives.push([L, m])); S.nexts.slice(0, 2).forEach(m => nexts.push([L, m])); });
