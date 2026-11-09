@@ -3,7 +3,8 @@
 const ALLOW = new Set([
   'login', 'cekSesi', 'logout',
   'getPublik',
-  'getDataAdmin', 'simpanLomba', 'simpanMatch', 'hapusLomba', 'urutLomba', 'imporLomba', 'simpanPengaturan'
+  'getDataAdmin', 'simpanLomba', 'simpanMatch', 'hapusLomba', 'urutLomba', 'imporLomba', 'simpanPengaturan',
+  'simpanBerita', 'hapusBerita', 'simpanAgenda', 'hapusAgenda'
 ]);
 
 module.exports = async function handler(req, res) {

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2a0a10">
 <meta name="robots" content="noindex">
-<title>Panel Bagan · MD FEST 2026</title>
+<title>Panel Panitia · MD FEST 2026</title>
 <link rel="icon" href="/brand/favicon.png"><link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
 <link rel="preload" href="/fonts/display.woff" as="font" type="font/woff" crossorigin><link rel="preload" href="/fonts/text-600.woff" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="/css/bagan.css"><link rel="stylesheet" href="/css/admin.css">
@@ -16,7 +16,7 @@
     <form class="card lcard" id="lf" autocomplete="on">
       <img class="lgo" src="/brand/mdfest.png" alt="">
       <h1 class="gold-t">Masuk Panitia</h1>
-      <p>Kelola bagan &amp; hasil lomba MD FEST 2026</p>
+      <p>Kelola lomba, berita, agenda &amp; informasi MD FEST 2026</p>
       <div class="f"><label class="l" for="u">Username</label><input class="in" id="u" name="username" autocomplete="username" autocapitalize="off" autocorrect="off" placeholder="Masukkan username" required></div>
       <div class="f"><label class="l" for="p">Password</label><input class="in" id="p" name="password" type="password" autocomplete="current-password" placeholder="Masukkan password" required></div>
       <div class="lerr" id="le" role="alert"></div>
@@ -27,9 +27,11 @@
 
   <div id="shell" hidden>
     <aside class="side" aria-label="Navigasi panitia">
-      <a class="sb-brand" href="/"><img src="/brand/mdfest.png" alt=""><span><b class="gold-t">MD FEST</b><small>Panel bagan</small></span></a>
+      <a class="sb-brand" href="/"><img src="/brand/mdfest.png" alt=""><span><b class="gold-t">MD FEST</b><small>Panel panitia</small></span></a>
       <div class="sb-g">
         <a class="sb-i" data-r="lomba" href="#lomba" data-ic="bracket">Lomba</a>
+        <a class="sb-i" data-r="berita" href="#berita" data-ic="file">Berita</a>
+        <a class="sb-i" data-r="agenda" href="#agenda" data-ic="cal">Agenda</a>
         <a class="sb-i" data-r="pengaturan" href="#pengaturan" data-ic="gear">Pengaturan</a>
         <a class="sb-i" href="/" target="_blank" rel="noopener" data-ic="eye">Halaman publik</a>
       </div>
@@ -45,6 +47,8 @@
 
     <nav class="bn" aria-label="Navigasi">
       <a data-r="lomba" href="#lomba" data-ic="bracket">Lomba</a>
+      <a data-r="berita" href="#berita" data-ic="file">Berita</a>
+      <a data-r="agenda" href="#agenda" data-ic="cal">Agenda</a>
       <a data-r="pengaturan" href="#pengaturan" data-ic="gear">Pengaturan</a>
       <a href="/" target="_blank" rel="noopener" data-ic="eye">Publik</a>
     </nav>

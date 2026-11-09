@@ -132,5 +132,43 @@
   }
   init();
 
-  g.TH = { THEMES, get, icon, iconSVG, emblemSVG, pattern, patternURL, latURL, bannerSVG, bannerURL, dataHref, vars, badge, paint, GOLD, GOLDHI, GOLDLO, WINE, IVORY };
+
+  /* ---------- palet per lomba (gaya poster siaran) ---------- */
+  const PAL = {
+    emas:    { nama: 'Emas',    bg0: '#4a2d06', bg1: '#b07a1c', band: '#ffe7a0', a1: '#ffe08a', a2: '#e0a22c', slab: '#4b1226', slab2: '#2c0a18', glow: '#ffd36b' },
+    tembaga: { nama: 'Tembaga', bg0: '#2e0f06', bg1: '#8a3d14', band: '#ffc58a', a1: '#ffc860', a2: '#ff7a2e', slab: '#5a200d', slab2: '#34120a', glow: '#ff9a52' },
+    maroon:  { nama: 'Maroon',  bg0: '#2e0716', bg1: '#7a2146', band: '#ffb6c8', a1: '#ffc0cf', a2: '#ff4f7a', slab: '#5a1230', slab2: '#330a1c', glow: '#ff7da0' },
+    zamrud:  { nama: 'Zamrud',  bg0: '#041f15', bg1: '#146a43', band: '#c9f08a', a1: '#dff04a', a2: '#22b86a', slab: '#0c3a28', slab2: '#062518', glow: '#6fe0a0' },
+    safir:   { nama: 'Safir',   bg0: '#06142f', bg1: '#13468c', band: '#9fd8ff', a1: '#7fdcf5', a2: '#2f84e6', slab: '#0d2f63', slab2: '#081d42', glow: '#5fb8ff' },
+    ungu:    { nama: 'Ungu',    bg0: '#190840', bg1: '#4a228f', band: '#ffc8e6', a1: '#ffb347', a2: '#ea3f8c', slab: '#35177a', slab2: '#210d4f', glow: '#b58cff' },
+    teal:    { nama: 'Teal',    bg0: '#032624', bg1: '#0e6a60', band: '#a6f5d2', a1: '#a2f3c8', a2: '#1fc7a4', slab: '#0a4540', slab2: '#062c29', glow: '#4fe0c0' },
+    cokelat: { nama: 'Cokelat', bg0: '#220a05', bg1: '#6b2c10', band: '#ffd08a', a1: '#ffd25e', a2: '#f09a1c', slab: '#4a1c0e', slab2: '#2c100a', glow: '#ffae4a' }
+  };
+  const PAL_DEF = { futsal: 'zamrud', badminton: 'tembaga', debat: 'emas', keilmuan: 'ungu', seni: 'cokelat', lainnya: 'emas' };
+  function pal(L) {
+    const cat = typeof L === 'string' ? L : (L && L.kategori), t = L && L.cfg && L.cfg.tema;
+    const key = PAL[t] ? t : (PAL_DEF[cat] || 'emas');
+    return Object.assign({ key }, PAL[key]);
+  }
+  const palVars = L => { const p = pal(L); return '--b0:' + p.bg0 + ';--b1:' + p.bg1 + ';--a1:' + p.a1 + ';--a2:' + p.a2 + ';--sl:' + p.slab + ';--sl2:' + p.slab2 + ';--gl:' + p.glow + ';--bd:' + p.band + ';'; };
+
+  /* latar poster 1920x1080 (juga dipakai sebagai latar hero) */
+  function posterBG(L, logo, W, H) {
+    W = W || 1920; H = H || 1080;
+    const p = pal(L), cat = typeof L === 'string' ? L : L.kategori, id = 'pb' + p.key + cat;
+    const glyph = icon(cat, '#ffffff', 1.5);
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice"><defs>' +
+      '<linearGradient id="' + id + 'g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + p.bg1 + '"/><stop offset=".45" stop-color="' + p.bg0 + '"/><stop offset="1" stop-color="' + p.bg0 + '"/></linearGradient>' +
+      '<linearGradient id="' + id + 'b" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="' + p.band + '" stop-opacity=".30"/><stop offset="1" stop-color="' + p.band + '" stop-opacity=".06"/></linearGradient>' +
+      '<radialGradient id="' + id + 'r" cx=".18" cy=".1" r=".7"><stop offset="0" stop-color="' + p.glow + '" stop-opacity=".30"/><stop offset="1" stop-color="' + p.glow + '" stop-opacity="0"/></radialGradient>' +
+      '<pattern id="' + id + 's" width="46" height="46" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><rect width="22" height="46" fill="#fff" fill-opacity=".035"/></pattern></defs>' +
+      '<rect width="1920" height="1080" fill="url(#' + id + 'g)"/><rect width="1920" height="1080" fill="url(#' + id + 's)"/><rect width="1920" height="1080" fill="url(#' + id + 'r)"/>' +
+      '<polygon points="0,560 730,0 560,0 0,400" fill="url(#' + id + 'b)"/><polygon points="1220,0 1920,0 1920,230" fill="' + p.glow + '" fill-opacity=".18"/><polygon points="1450,0 1920,0 1920,120" fill="' + p.band + '" fill-opacity=".10"/>' +
+      (logo ? '<image href="' + logo + '" x="-60" y="130" width="720" height="720" opacity=".11"/>' : '') +
+      '<g transform="translate(1180 270) scale(9.4)" opacity=".075">' + glyph + '</g>' +
+      '<path d="M0 960 C 500 900 900 1010 1920 960 V1080 H0Z" fill="#000" fill-opacity=".22"/><path d="M80 930 C 480 905 820 985 1200 1022" fill="none" stroke="' + p.a1 + '" stroke-opacity=".55" stroke-width="2"/></svg>';
+  }
+  const posterURL = (L, logo, W, H) => uri(posterBG(L, logo, W, H));
+
+  g.TH = { PAL, pal, palVars, posterBG, posterURL, THEMES, get, icon, iconSVG, emblemSVG, pattern, patternURL, latURL, bannerSVG, bannerURL, dataHref, vars, badge, paint, GOLD, GOLDHI, GOLDLO, WINE, IVORY };
 })(window);

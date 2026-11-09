@@ -2,7 +2,7 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const clone = o => JSON.parse(JSON.stringify(o));
-  const S = { tok: F.get('bg_tok'), user: null, lomba: [], pengaturan: {} };
+  const S = { tok: F.get('bg_tok'), user: null, lomba: [], pengaturan: {}, berita: [], agenda: [] };
   let W = null, isNew = false, dirty = false, etab = F.get('bg_etab') || '', viewer = null, cur = '';
   const gcfg = { n: 4, mode: 'berurutan', acak: true };
   const sel = (v, o) => (v === o ? ' selected' : '');
@@ -34,7 +34,7 @@
   }
   function loadAll() {
     return F.wrap(call('getDataAdmin'), 'Memuat data', 'Mengambil bagan dari Google Sheet…').then(d => {
-      S.lomba = d.lomba.map(BG.fix); S.pengaturan = d.pengaturan || {};
+      S.lomba = d.lomba.map(BG.fix); S.pengaturan = d.pengaturan || {}; S.berita = d.berita || []; S.agenda = d.agenda || [];
       $('login').hidden = true; $('shell').hidden = false;
       const nm = (S.user && S.user.nama) || 'Panitia'; $('whoN').textContent = nm; $('av').textContent = nm.charAt(0).toUpperCase();
       F.icons($('shell')); go();
@@ -49,6 +49,8 @@
     $('savebar').classList.toggle('on', dirty && p[0] === 'lomba' && !!p[1]);
     viewer = null;
     if (p[0] === 'pengaturan') return viewSettings();
+    if (p[0] === 'berita') return viewBerita();
+    if (p[0] === 'agenda') return viewAgenda();
     if (p[0] === 'lomba' && p[1]) return viewEditor(decodeURIComponent(p.slice(1).join('/')));
     return viewList();
   }
@@ -63,7 +65,7 @@
     go();
   });
   const nav = h => { if (location.hash === '#' + h) go(); else location.hash = h; };
-  function head(title, sub, actions, back) {
+  function head(title, sub, actions, back) {  // back: true = kembali ke daftar lomba
     $('top').innerHTML = (back ? '<a class="btn line ib sm" href="#lomba" aria-label="Kembali" data-ic="back"></a>' : '') + '<div class="tt"><h1>' + F.esc(title) + '</h1><p>' + F.esc(sub || '') + '</p></div>' + (actions || '');
     F.icons($('top'));
   }
@@ -123,14 +125,14 @@
 
   function importSheet() {
     const s = F.sheet('<div class="sh-h"><div><h3>Impor lomba</h3><small>Lomba dengan ID sama akan ditimpa.</small></div><button class="btn line ib sm" data-x type="button" aria-label="Tutup" data-ic="close"></button></div><div class="sh-b">' +
-      '<button class="mr" id="seed" type="button" style="grid-template-columns:auto 1fr;text-align:left"><span class="badge gold" style="height:36px;width:36px;padding:0;justify-content:center">' + F.ic('trophy') + '</span><span class="vs"><b>Muat data MD FEST 2026</b><small>8 lomba hasil undian dari bagan lama (futsal, badminton, debat, dll.)</small></span></button>' +
+      '<button class="mr" id="seed" type="button" style="grid-template-columns:auto 1fr;text-align:left"><span class="badge gold" style="height:36px;width:36px;padding:0;justify-content:center">' + F.ic('trophy') + '</span><span class="vs"><b>Muat data MD FEST 2026</b><small>8 lomba hasil undian, plus berita, agenda, dan pengaturan contoh (hanya mengisi yang masih kosong)</small></span></button>' +
       '<label class="mr" style="grid-template-columns:auto 1fr;text-align:left;cursor:pointer"><span class="badge gold" style="height:36px;width:36px;padding:0;justify-content:center">' + F.ic('upload') + '</span><span class="vs"><b>Pilih file JSON</b><small>Cadangan yang diunduh dari panel ini (satu atau beberapa file)</small></span><input id="ff" type="file" accept=".json,application/json" multiple hidden></label></div>');
-    const run = list => { s.close(); return F.wrap(call('imporLomba', list), 'Mengimpor ' + list.length + ' lomba', 'Menulis ke Google Sheet…').then(() => loadAll()).then(() => F.toast(list.length + ' lomba diimpor')).catch(fail); };
+    const run = payload => { const n = (Array.isArray(payload) ? payload : payload.lomba || []).length; s.close(); return F.wrap(call('imporLomba', payload), 'Mengimpor data', 'Menulis ke Google Sheet…').then(() => loadAll()).then(() => F.toast(n + ' lomba diimpor')).catch(fail); };
     s.el.querySelector('#seed').onclick = () => fetch('/seed.json').then(r => r.json()).then(run).catch(e => fail(new Error('Gagal membaca data contoh.')));
     s.el.querySelector('#ff').onchange = ev => {
       const fs = [].slice.call(ev.target.files); if (!fs.length) return;
       Promise.all(fs.map(f => f.text().then(t => JSON.parse(t)))).then(a => {
-        const list = [].concat.apply([], a.map(x => (Array.isArray(x) ? x : [x]))).filter(x => x && x.nama && Array.isArray(x.tim));
+        const list = [].concat.apply([], a.map(x => (Array.isArray(x) ? x : x && Array.isArray(x.lomba) ? x.lomba : [x]))).filter(x => x && x.nama && Array.isArray(x.tim));
         if (!list.length) throw new Error('File tidak berisi data lomba yang valid.');
         run(list);
       }).catch(e => fail(new Error(e.message.indexOf('JSON') >= 0 ? 'File bukan JSON yang valid.' : e.message)));
@@ -152,8 +154,8 @@
     if (structural && hasResults(W)) F.ask('Reset hasil pertandingan?', 'Mengubah susunan tim menghapus skor dan status yang sudah diisi. Jadwal tetap.', 'Ya, ubah', true).then(ok => { if (ok) run(); });
     else run();
   }
-  const tabsOf = () => (W.tipe === 'bagan' ? [['bagan', 'Bagan', 'bracket'], ['tim', 'Tim & undian', 'users'], ['jadwal', 'Jadwal', 'cal'], ['set', 'Pengaturan', 'gear'], ['ekspor', 'Ekspor', 'download']]
-    : [['grup', 'Grup', 'list'], ['tim', 'Tim', 'users'], ['set', 'Pengaturan', 'gear'], ['ekspor', 'Ekspor', 'download']]);
+  const tabsOf = () => (W.tipe === 'bagan' ? [['bagan', 'Bagan', 'bracket'], ['info', 'Info', 'file'], ['tim', 'Tim & undian', 'users'], ['jadwal', 'Jadwal', 'cal'], ['set', 'Pengaturan', 'gear'], ['ekspor', 'Ekspor', 'download']]
+    : [['grup', 'Grup', 'list'], ['info', 'Info', 'file'], ['tim', 'Tim', 'users'], ['set', 'Pengaturan', 'gear'], ['ekspor', 'Ekspor', 'download']]);
 
   function viewEditor(id) {
     if (!W || W.id !== id) {
@@ -170,7 +172,7 @@
   function drawTab() {
     const y = window.scrollY, el = $('etab'); if (!el) return;
     viewer = null;
-    ({ bagan: tabBagan, grup: tabGrup, tim: tabTim, jadwal: tabJadwal, set: tabSet, ekspor: tabEkspor })[etab](el);
+    ({ bagan: tabBagan, grup: tabGrup, info: tabInfo, tim: tabTim, jadwal: tabJadwal, set: tabSet, ekspor: tabEkspor })[etab](el);
     F.icons(el); window.scrollTo(0, y);
   }
   function titleSync() { const t = document.querySelector('#top h1'); if (t) t.textContent = W.nama || 'Lomba'; }
@@ -364,6 +366,24 @@
     on('dx', 'click', () => F.ask('Hapus "' + W.nama + '"?', 'Tindakan ini tidak bisa dibatalkan.', 'Hapus', true).then(ok => { if (!ok) return; F.wrap(call('hapusLomba', W.id), 'Menghapus').then(() => { S.lomba = S.lomba.filter(x => x.id !== W.id); dirty = false; W = null; F.toast('Lomba dihapus'); nav('lomba'); }).catch(fail); }));
   }
 
+  /* --- tab info lomba (portal publik) --- */
+  const TEMA = [['', 'Ikut kategori', '#3a2a12', '#b8862b'], ['emas', 'Emas', '#8a5a10', '#d9a43b'], ['tembaga', 'Tembaga', '#5b2412', '#e0742a'], ['maroon', 'Maroon', '#4a0f26', '#d94a73'], ['zamrud', 'Zamrud', '#0b3d2a', '#34c48a'],
+    ['safir', 'Safir', '#0d2a5a', '#3aa0e8'], ['ungu', 'Ungu', '#2a1160', '#a85be0'], ['teal', 'Teal', '#0a3a40', '#27c2c2'], ['cokelat', 'Cokelat', '#2e1608', '#c88a3a']];
+  function tabInfo(el) {
+    const c = W.cfg, ta = (id, lbl, v, ph, h) => '<div class="f"><label class="l" for="' + id + '">' + lbl + '</label><textarea class="in" id="' + id + '" style="min-height:' + (h || 96) + 'px" placeholder="' + F.esc(ph || '') + '">' + F.esc(v || '') + '</textarea></div>';
+    el.innerHTML = '<section class="card panel"><div class="sec" style="margin:0"><h2>Tema warna</h2></div><div class="hint">Warna halaman publik lomba ini. Biarkan "Ikut kategori" jika tidak ingin mengubahnya.</div>' +
+      '<div class="swatches" id="tm" role="radiogroup" aria-label="Tema warna">' + TEMA.map(t => '<button type="button" class="swt' + ((c.tema || '') === t[0] ? ' on' : '') + '" role="radio" aria-checked="' + ((c.tema || '') === t[0]) + '" data-tema="' + t[0] + '" style="--g1:' + t[2] + ';--g2:' + t[3] + '"><i></i><span>' + t[1] + '</span></button>').join('') + '</div></section>' +
+      '<section class="card panel"><div class="sec" style="margin:0"><h2>Informasi lomba</h2><span>tampil di halaman publik</span></div>' +
+      ta('iD', 'Deskripsi singkat', c.deskripsi, 'Satu atau dua kalimat tentang lomba ini', 84) +
+      ta('iJ', 'Juknis / peraturan', c.juknis, 'Satu aturan per baris', 150) + ta('iH', 'Hadiah', c.hadiah, 'mis. Trofi, piagam, dan hadiah', 84) +
+      '<div class="row c2"><div class="f"><label class="l" for="iB">Biaya pendaftaran</label><input class="in" id="iB" value="' + F.esc(c.biaya || '') + '" placeholder="mis. Gratis"></div><div class="f"><label class="l" for="iT">Tanggal lomba</label><input class="in" id="iT" type="date" value="' + F.esc(c.tglLomba || '') + '"></div></div>' +
+      '<div class="f"><label class="l" for="iK">Kontak panitia lomba</label><input class="in" id="iK" value="' + F.esc(c.kontak || '') + '" placeholder="mis. 0812xxxx (nama)"></div>' +
+      '<div class="f"><label class="l" for="iU">Tautan pendaftaran</label><input class="in" id="iU" type="url" inputmode="url" value="' + F.esc(c.daftarUrl || '') + '" placeholder="https://"></div></section>';
+    const bind = (id, key) => { const x = $(id); x.addEventListener('input', () => { c[key] = x.value; setDirty(true); }); };
+    bind('iD', 'deskripsi'); bind('iJ', 'juknis'); bind('iH', 'hadiah'); bind('iB', 'biaya'); bind('iT', 'tglLomba'); bind('iK', 'kontak'); bind('iU', 'daftarUrl');
+    $('tm').addEventListener('click', e => { const b = e.target.closest('[data-tema]'); if (!b) return; c.tema = b.dataset.tema; [].forEach.call($('tm').children, x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', on); }); setDirty(true); });
+  }
+
   /* --- tab ekspor --- */
   function tabEkspor(el) {
     el.innerHTML = '<section class="card panel"><div class="sec" style="margin:0"><h2>Ekspor & bagikan</h2></div>' + (dirty ? '<div class="warn">' + F.ic('info') + '<span>Unduhan memuat perubahan yang belum disimpan.</span></div>' : '') +
@@ -397,19 +417,118 @@
   }));
   window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
-  /* ---------- pengaturan umum ---------- */
+  /* ---------- berita ---------- */
+  const KATB = [['pengumuman', 'Pengumuman'], ['berita', 'Berita'], ['hasil', 'Hasil'], ['info', 'Info']];
+  const nowLocal = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()); };
+  const fmtTgl = (iso, jam) => { if (!iso) return ''; const d = new Date(iso.length === 10 ? iso + 'T00:00:00' : iso); if (isNaN(d)) return iso; return d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) + (jam && iso.length > 10 ? ' · ' + iso.slice(11, 16) : ''); };
+  const lombaOpts = v => '<option value="">Tidak terkait lomba tertentu</option>' + S.lomba.map(l => '<option value="' + F.esc(l.id) + '"' + sel(v, l.id) + '>' + F.esc(l.nama) + '</option>').join('');
+  const lombaNama = id => { const l = S.lomba.find(x => x.id === id); return l ? l.nama : ''; };
+  const byTgl = (a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0) || (a.tgl < b.tgl ? 1 : a.tgl > b.tgl ? -1 : 0);
+
+  function viewBerita() {
+    head('Berita', 'Pengumuman dan kabar terbaru untuk portal publik', '<button class="btn gld sm" id="nb" type="button" data-ic="plus">Berita baru</button>');
+    const L = S.berita.slice().sort(byTgl);
+    let h = '';
+    if (!L.length) h = '<div class="card empty"><b>Belum ada berita</b>Tulis pengumuman pertama agar halaman publik tidak kosong.<br><br><button class="btn gld sm" id="nb2" type="button" data-ic="plus">Berita baru</button></div>';
+    L.forEach(x => {
+      h += '<article class="card nrow' + (x.publik ? '' : ' off') + '" data-id="' + F.esc(x.id) + '"><div class="nr-h"><div class="meta">' + (x.pin ? '<span class="badge gold">' + F.ic('pin') + 'Disematkan</span>' : '') + '<span class="badge">' + F.esc((KATB.find(k => k[0] === x.kategori) || [0, 'Berita'])[1]) + '</span>' +
+        (x.lomba ? '<span class="badge">' + F.esc(lombaNama(x.lomba) || x.lomba) + '</span>' : '') + (x.publik ? '' : '<span class="badge off">Draf</span>') + '</div><small>' + F.esc(fmtTgl(x.tgl, true)) + '</small></div>' +
+        '<h3>' + F.esc(x.judul) + '</h3>' + (x.ringkas ? '<p>' + F.esc(x.ringkas) + '</p>' : '') +
+        '<div class="ft"><label class="sw"><input type="checkbox" data-pub="' + F.esc(x.id) + '"' + (x.publik ? ' checked' : '') + '><i></i>' + (x.publik ? 'Diterbitkan' : 'Draf') + '</label><div class="acts"><button class="btn line sm" data-e="' + F.esc(x.id) + '" type="button" data-ic="edit">Ubah</button><button class="btn line ib sm" data-x="' + F.esc(x.id) + '" type="button" aria-label="Hapus berita" data-ic="trash"></button></div></div></article>';
+    });
+    page(h);
+    const nw = () => beritaSheet(); $('nb').onclick = nw; const n2 = $('nb2'); if (n2) n2.onclick = nw;
+    $('page').querySelectorAll('[data-e]').forEach(b => b.onclick = () => beritaSheet(S.berita.find(x => x.id === b.dataset.e)));
+    $('page').querySelectorAll('[data-x]').forEach(b => b.onclick = () => { const x = S.berita.find(y => y.id === b.dataset.x); F.ask('Hapus berita?', '"' + F.esc(x.judul) + '" dihapus dari Google Sheet dan halaman publik.', 'Hapus', true).then(ok => { if (!ok) return; F.wrap(call('hapusBerita', x.id), 'Menghapus').then(() => { S.berita = S.berita.filter(y => y.id !== x.id); F.toast('Berita dihapus'); viewBerita(); }).catch(fail); }); });
+    $('page').querySelectorAll('[data-pub]').forEach(c => c.onchange = () => {
+      const x = S.berita.find(y => y.id === c.dataset.pub), v = c.checked;
+      F.wrap(call('simpanBerita', Object.assign({}, x, { publik: v })), 'Menyimpan').then(r => { Object.assign(x, r); F.toast(v ? 'Berita diterbitkan' : 'Berita disembunyikan'); viewBerita(); }).catch(e => { c.checked = !v; fail(e); });
+    });
+  }
+  function beritaSheet(x) {
+    const d = Object.assign({ id: '', judul: '', ringkas: '', isi: '', kategori: 'berita', tgl: nowLocal(), pin: false, publik: true, lomba: '' }, x || {});
+    if (d.tgl && d.tgl.length === 10) d.tgl += 'T00:00';
+    const s = F.sheet('<div class="sh-h"><div><h3>' + (x ? 'Ubah berita' : 'Berita baru') + '</h3><small>Tampil di halaman Berita dan beranda publik.</small></div><button class="btn line ib sm" data-x type="button" aria-label="Tutup" data-ic="close"></button></div><div class="sh-b">' +
+      '<div class="f"><label class="l" for="bj">Judul</label><input class="in" id="bj" maxlength="140" value="' + F.esc(d.judul) + '" placeholder="mis. Jadwal final dimajukan" autocomplete="off"></div>' +
+      '<div class="f"><label class="l" for="br">Ringkasan (tampil di kartu)</label><input class="in" id="br" maxlength="400" value="' + F.esc(d.ringkas) + '" placeholder="Satu kalimat pembuka"></div>' +
+      '<div class="f"><label class="l" for="bi">Isi berita</label><textarea class="in" id="bi" style="min-height:150px" placeholder="Pisahkan paragraf dengan baris kosong">' + F.esc(d.isi) + '</textarea></div>' +
+      '<div class="f"><span class="l">Kategori</span><div class="seg" id="bk">' + KATB.map(k => '<button type="button" data-v="' + k[0] + '" class="' + (d.kategori === k[0] ? 'on' : '') + '">' + k[1] + '</button>').join('') + '</div></div>' +
+      '<div class="row c2"><div class="f"><label class="l" for="bt">Tanggal &amp; jam</label><input class="in" id="bt" type="datetime-local" value="' + F.esc(d.tgl) + '"></div><div class="f"><label class="l" for="bl">Terkait lomba</label><select class="in" id="bl">' + lombaOpts(d.lomba) + '</select></div></div>' +
+      '<label class="sw"><input type="checkbox" id="bp"' + (d.pin ? ' checked' : '') + '><i></i>Sematkan di bagian atas</label>' +
+      '<label class="sw"><input type="checkbox" id="bu"' + (d.publik ? ' checked' : '') + '><i></i>Terbitkan sekarang (matikan untuk menyimpan sebagai draf)</label></div>' +
+      '<div class="sh-f"><button class="btn line" data-x type="button">Batal</button><button class="btn gld" id="sv" type="button" data-ic="save">Simpan</button></div>', { lock: false });
+    const q = id => s.el.querySelector(id);
+    q('#bk').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; d.kategori = b.dataset.v; [].forEach.call(q('#bk').children, y => y.classList.toggle('on', y === b)); });
+    q('#sv').onclick = () => {
+      d.judul = q('#bj').value.trim(); if (!d.judul) { F.toast('Isi judul berita dulu', true); return; }
+      d.ringkas = q('#br').value.trim(); d.isi = q('#bi').value.replace(/\r/g, '').trim(); d.tgl = q('#bt').value || nowLocal(); d.lomba = q('#bl').value; d.pin = q('#bp').checked; d.publik = q('#bu').checked;
+      F.wrap(call('simpanBerita', d), 'Menyimpan', 'Menulis ke Google Sheet…').then(r => { const i = S.berita.findIndex(y => y.id === r.id); if (i >= 0) S.berita[i] = r; else S.berita.push(r); s.close(); F.toast('Berita tersimpan'); if (cur.split('/')[0] === 'berita') viewBerita(); }).catch(fail);
+    };
+    setTimeout(() => q('#bj').focus(), 280);
+  }
+
+  /* ---------- agenda ---------- */
+  function viewAgenda() {
+    head('Agenda', 'Rundown acara di luar jadwal pertandingan', '<button class="btn gld sm" id="na" type="button" data-ic="plus">Agenda baru</button>');
+    const L = S.agenda.slice().sort((a, b) => { const p = a.tgl + ' ' + (a.jam || ''), q = b.tgl + ' ' + (b.jam || ''); return p < q ? -1 : p > q ? 1 : 0; });
+    let h = '';
+    if (!L.length) h = '<div class="card empty"><b>Belum ada agenda</b>Tambahkan technical meeting, pembukaan, penutupan, atau kegiatan lain.<br><br><button class="btn gld sm" id="na2" type="button" data-ic="plus">Agenda baru</button></div>';
+    else {
+      let last = '';
+      h = '<div class="sch">';
+      L.forEach(x => {
+        if (x.tgl !== last) { last = x.tgl; h += '<div class="day">' + F.esc(new Date(x.tgl + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })) + '</div>'; }
+        h += '<button class="mr' + (x.publik ? '' : ' off') + '" type="button" data-e="' + F.esc(x.id) + '"><span class="tm">' + (x.jam || '—') + '<small>' + (x.jamSelesai ? 's/d ' + F.esc(x.jamSelesai) : 'Sepanjang hari') + '</small></span><span class="vs"><b>' + F.esc(x.judul) + '</b><small>' + F.esc([x.lokasi, lombaNama(x.lomba)].filter(Boolean).join(' · ') || ' ') + '</small></span>' + (x.publik ? '<span class="badge ok">Terbit</span>' : '<span class="badge off">Draf</span>') + '</button>';
+      });
+      h += '</div>';
+    }
+    page(h);
+    const nw = () => agendaSheet(); $('na').onclick = nw; const n2 = $('na2'); if (n2) n2.onclick = nw;
+    $('page').querySelectorAll('[data-e]').forEach(b => b.onclick = () => agendaSheet(S.agenda.find(x => x.id === b.dataset.e)));
+  }
+  function agendaSheet(x) {
+    const d = Object.assign({ id: '', judul: '', tgl: '', jam: '', jamSelesai: '', lokasi: '', ket: '', lomba: '', publik: true }, x || {});
+    const s = F.sheet('<div class="sh-h"><div><h3>' + (x ? 'Ubah agenda' : 'Agenda baru') + '</h3><small>Tampil di halaman Jadwal publik.</small></div><button class="btn line ib sm" data-x type="button" aria-label="Tutup" data-ic="close"></button></div><div class="sh-b">' +
+      '<div class="f"><label class="l" for="aj">Nama kegiatan</label><input class="in" id="aj" maxlength="140" value="' + F.esc(d.judul) + '" placeholder="mis. Pembukaan MD FEST 2026" autocomplete="off"></div>' +
+      '<div class="row c3"><div class="f"><label class="l" for="at">Tanggal</label><input class="in" id="at" type="date" value="' + F.esc(d.tgl) + '"></div><div class="f"><label class="l" for="aa">Mulai</label><input class="in" id="aa" type="time" value="' + F.esc(d.jam) + '"></div><div class="f"><label class="l" for="ab">Selesai</label><input class="in" id="ab" type="time" value="' + F.esc(d.jamSelesai) + '"></div></div>' +
+      '<div class="f"><label class="l" for="al">Lokasi</label><input class="in" id="al" maxlength="100" value="' + F.esc(d.lokasi) + '" placeholder="mis. Panggung Utama"></div>' +
+      '<div class="f"><label class="l" for="ak">Keterangan (opsional)</label><textarea class="in" id="ak" style="min-height:76px">' + F.esc(d.ket) + '</textarea></div>' +
+      '<div class="f"><label class="l" for="ao">Terkait lomba</label><select class="in" id="ao">' + lombaOpts(d.lomba) + '</select></div>' +
+      '<label class="sw"><input type="checkbox" id="au"' + (d.publik ? ' checked' : '') + '><i></i>Tampilkan di halaman publik</label></div>' +
+      '<div class="sh-f">' + (x ? '<button class="btn bad ib" style="flex:none;width:48px" id="dl" type="button" aria-label="Hapus agenda" data-ic="trash"></button>' : '') + '<button class="btn line" data-x type="button">Batal</button><button class="btn gld" id="sv" type="button" data-ic="save">Simpan</button></div>', { lock: false });
+    const q = id => s.el.querySelector(id);
+    q('#sv').onclick = () => {
+      d.judul = q('#aj').value.trim(); d.tgl = q('#at').value; if (!d.judul) { F.toast('Isi nama kegiatan dulu', true); return; } if (!d.tgl) { F.toast('Pilih tanggal dulu', true); return; }
+      d.jam = q('#aa').value; d.jamSelesai = q('#ab').value; d.lokasi = q('#al').value.trim(); d.ket = q('#ak').value.trim(); d.lomba = q('#ao').value; d.publik = q('#au').checked;
+      F.wrap(call('simpanAgenda', d), 'Menyimpan', 'Menulis ke Google Sheet…').then(r => { const i = S.agenda.findIndex(y => y.id === r.id); if (i >= 0) S.agenda[i] = r; else S.agenda.push(r); s.close(); F.toast('Agenda tersimpan'); if (cur.split('/')[0] === 'agenda') viewAgenda(); }).catch(fail);
+    };
+    const dl = q('#dl');
+    if (dl) dl.onclick = () => F.ask('Hapus agenda?', '"' + F.esc(d.judul) + '" dihapus dari Google Sheet dan halaman publik.', 'Hapus', true).then(ok => { if (!ok) return; F.wrap(call('hapusAgenda', d.id), 'Menghapus').then(() => { S.agenda = S.agenda.filter(y => y.id !== d.id); s.close(); F.toast('Agenda dihapus'); if (cur.split('/')[0] === 'agenda') viewAgenda(); }).catch(fail); });
+    setTimeout(() => q('#aj').focus(), 280);
+  }
+
+  /* ---------- pengaturan event ---------- */
   function viewSettings() {
-    const P = S.pengaturan;
-    head('Pengaturan', 'Tampilan beranda publik dan akun');
-    page('<section class="card panel"><div class="sec" style="margin:0"><h2>Beranda publik</h2></div>' +
-      '<div class="f"><label class="l" for="pj">Judul besar</label><input class="in" id="pj" value="' + F.esc(P.judul || '') + '" placeholder="Bagan MD FEST 2026"></div>' +
-      '<div class="f"><label class="l" for="ps">Teks pengantar</label><textarea class="in" id="ps" style="min-height:76px" placeholder="Lihat bagan, jadwal, dan hasil semua lomba.">' + F.esc(P.subjudul || '') + '</textarea></div>' +
-      '<div class="f"><label class="l" for="pp">Pengumuman (muncul di atas daftar lomba)</label><input class="in" id="pp" value="' + F.esc(P.pengumuman || '') + '" placeholder="mis. Final futsal dipindah ke 14.00"></div>' +
+    const P = S.pengaturan, v = k => F.esc(P[k] || '');
+    const inp = (id, lbl, k, ph, type) => '<div class="f"><label class="l" for="' + id + '">' + lbl + '</label><input class="in" id="' + id + '"' + (type ? ' type="' + type + '"' : '') + ' value="' + v(k) + '" placeholder="' + F.esc(ph || '') + '"></div>';
+    head('Pengaturan', 'Identitas event, kontak, dan akun');
+    page('<section class="card panel"><div class="sec" style="margin:0"><h2>Identitas</h2></div>' +
+      inp('pj', 'Nama event', 'judul', 'MD FEST 2026') + inp('ps', 'Subjudul', 'subjudul', 'Manajemen Dakwah Festival') + inp('pg', 'Tagline', 'tagline', 'Kalimat singkat di bawah judul beranda') +
+      inp('pp', 'Pengumuman (pita di bagian atas situs)', 'pengumuman', 'mis. Final futsal dipindah ke 14.00') + '</section>' +
+      '<section class="card panel"><div class="sec" style="margin:0"><h2>Tanggal &amp; lokasi</h2></div>' +
+      '<div class="row c2">' + inp('pm', 'Tanggal mulai', 'tglMulai', '', 'date') + inp('pe', 'Tanggal selesai', 'tglSelesai', '', 'date') + '</div>' + inp('pl', 'Lokasi acara', 'lokasi', 'mis. Kampus Manajemen Dakwah') + '</section>' +
+      '<section class="card panel"><div class="sec" style="margin:0"><h2>Kontak &amp; pendaftaran</h2></div>' +
+      '<div class="row c2">' + inp('pw', 'WhatsApp panitia', 'wa', 'mis. 6281234567890') + inp('pi', 'Instagram', 'instagram', 'mis. @mdfest2026') + '</div>' +
+      '<div class="row c2">' + inp('pem', 'Email', 'email', 'panitia@contoh.id', 'email') + inp('pd', 'Tautan pendaftaran umum', 'daftarUrl', 'https://', 'url') + '</div></section>' +
+      '<section class="card panel"><div class="sec" style="margin:0"><h2>Tentang</h2></div>' +
+      '<div class="f"><label class="l" for="pt">Tentang MD FEST</label><textarea class="in" id="pt" style="min-height:130px" placeholder="Pisahkan paragraf dengan baris kosong">' + v('tentang') + '</textarea></div>' +
+      '<div class="f"><label class="l" for="po">Sponsor &amp; mitra (opsional)</label><textarea class="in" id="po" style="min-height:70px" placeholder="Tulis nama-nama, dipisah koma">' + v('sponsor') + '</textarea></div>' +
       '<button class="btn gld" id="pv" type="button" data-ic="save">Simpan pengaturan</button></section>' +
       '<section class="card panel"><div class="sec" style="margin:0"><h2>Akun</h2></div><div class="hint">Masuk sebagai <b>' + F.esc((S.user && S.user.nama) || 'Panitia') + '</b>. Tambah atau ganti password panitia langsung di sheet <b>Admin</b> pada Google Sheet.</div>' +
       (S.user && S.user.pwDefault ? '<div class="warn">' + F.ic('info') + '<span>Password masih bawaan. Segera ganti di sheet Admin.</span></div>' : '') +
       '<div class="acts"><button class="btn line sm" id="lo" type="button" data-ic="logout">Keluar</button><button class="btn line sm" id="rl" type="button" data-ic="refresh">Muat ulang data</button></div></section>');
-    $('pv').onclick = () => F.wrap(call('simpanPengaturan', { judul: $('pj').value.trim(), subjudul: $('ps').value.trim(), pengumuman: $('pp').value.trim() }), 'Menyimpan').then(r => { S.pengaturan = r; F.toast('Pengaturan tersimpan'); }).catch(fail);
+    const val = id => $(id).value.trim();
+    $('pv').onclick = () => F.wrap(call('simpanPengaturan', { judul: val('pj'), subjudul: val('ps'), tagline: val('pg'), pengumuman: val('pp'), tglMulai: val('pm'), tglSelesai: val('pe'), lokasi: val('pl'), wa: val('pw'), instagram: val('pi'), email: val('pem'), daftarUrl: val('pd'), tentang: $('pt').value.replace(/\r/g, '').trim(), sponsor: $('po').value.trim() }), 'Menyimpan', 'Menulis ke Google Sheet…').then(r => { S.pengaturan = r; F.toast('Pengaturan tersimpan'); }).catch(fail);
     $('lo').onclick = logout; $('rl').onclick = () => loadAll().then(() => F.toast('Data dimuat ulang')).catch(fail);
   }
 

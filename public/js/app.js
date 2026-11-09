@@ -29,7 +29,10 @@
     file: '<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 14h6M9 17h6"/>', list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
     bracket: '<path d="M3 5h5v5H3zM3 14h5v5H3zM16 9.5h5v5h-5z"/><path d="M8 7.5h3v9H8M11 12h5"/>', print: '<path d="M6 9V3h12v6M6 18H4v-7h16v7h-2"/><rect x="6" y="14" width="12" height="7"/>',
     live: '<circle cx="12" cy="12" r="3"/><path d="M7.5 7.5a6.4 6.4 0 000 9M16.5 7.5a6.4 6.4 0 010 9M4.7 4.7a10.5 10.5 0 000 14.6M19.3 4.7a10.5 10.5 0 010 14.6"/>',
-    upload: '<path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 21h16"/>', info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>', dots: '<path d="M5 12h.01M12 12h.01M19 12h.01"/>'
+    upload: '<path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 21h16"/>', pin: '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0119 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>', clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>', news: '<path d="M4 5h13v14H6a2 2 0 01-2-2z"/><path d="M17 9h3v8a2 2 0 01-2 2M8 9h5M8 13h5"/>', phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/>',
+    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>', insta: '<rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="12" cy="12" r="3.6"/><path d="M16.8 7.2h.01"/>', ticket: '<path d="M3 8a2 2 0 002-2h14a2 2 0 002 2v2a2 2 0 000 4v2a2 2 0 00-2 2H5a2 2 0 00-2-2v-2a2 2 0 000-4z"/><path d="M14 6v12" stroke-dasharray="2 2"/>',
+    menu: '<path d="M4 7h16M4 12h16M4 17h16"/>', book: '<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zM4 21V5"/>', flag: '<path d="M5 21V4M5 4h12l-2 4 2 4H5"/>', star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>', info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>', dots: '<path d="M5 12h.01M12 12h.01M19 12h.01"/>'
   };
   F.ic = (n, c) => '<svg class="ic ' + (c || '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (P[n] || '') + '</svg>';
   F.icons = root => [].forEach.call((root || document).querySelectorAll('[data-ic]'), el => {
@@ -97,5 +100,39 @@
       F.wrap(BGR.exportAs(L, k), 'Menyiapkan ' + k.toUpperCase(), 'Mohon tunggu sebentar…').then(n => F.toast('Terunduh: ' + n)).catch(e => F.toast(e.message || 'Gagal mengunduh', true));
     }));
   };
+
+  /* ---------- data portal: tampil seketika (cache/boot), lalu diperbarui diam-diam ---------- */
+  const KEY = 'mdf_site_v3', EMPTY = { lomba: [], pengaturan: {}, berita: [], agenda: [] };
+  function norm(d) { d = d || {}; return { lomba: d.lomba || [], pengaturan: d.pengaturan || {}, berita: d.berita || [], agenda: d.agenda || [] }; }
+  let cur = null, sig = '';
+  F.live = function (cb) {
+    if (!cur) { try { cur = norm(JSON.parse(F.get(KEY))); } catch (e) { cur = null; } if (!cur || !cur.lomba.length) cur = norm(window.BOOT || EMPTY); sig = JSON.stringify(cur); }
+    cb(cur, true);
+    const pull = () => F.rpc('getPublik').then(d => {
+      const n = norm(d), j = JSON.stringify(n); F.set(KEY, j);
+      if (j !== sig) { sig = j; cur = n; cb(n, false); }
+    }).catch(() => { });
+    pull();
+    setInterval(() => { if (!document.hidden) pull(); }, 45000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); });
+  };
+  /* ubah innerHTML hanya bila berubah (tanpa kedip, posisi gulir aman) */
+  F.put = (el, html) => { if (typeof el === 'string') el = document.getElementById(el); if (!el || el._h === html) return; el._h = html; el.innerHTML = html; F.icons(el); };
+  const BLN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'], HR = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  F.BLN = BLN; F.HR = HR;
+  F.date = (s) => { if (!s) return null; const d = new Date(String(s).slice(0, 10) + 'T00:00:00'); return isNaN(d) ? null : d; };
+  F.fdate = (s, o) => { const d = F.date(s); if (!d) return ''; o = o || {}; return (o.day ? HR[d.getDay()] + ', ' : '') + d.getDate() + ' ' + (o.short ? BLN[d.getMonth()].slice(0, 3) : BLN[d.getMonth()]) + (o.noyear ? '' : ' ' + d.getFullYear()); };
+  F.range = (a, b) => { const x = F.date(a), y = F.date(b); if (!x) return ''; if (!y || a === b) return F.fdate(a); if (x.getMonth() === y.getMonth() && x.getFullYear() === y.getFullYear()) return x.getDate() + '–' + y.getDate() + ' ' + BLN[x.getMonth()] + ' ' + x.getFullYear(); return F.fdate(a, { short: true }) + ' – ' + F.fdate(b, { short: true }); };
+  F.ago = (iso) => { const t = new Date(iso); if (isNaN(t)) return ''; const m = Math.round((Date.now() - t) / 60000); if (m < 1) return 'Baru saja'; if (m < 60) return m + ' menit lalu'; if (m < 1440) return Math.round(m / 60) + ' jam lalu'; if (m < 10080) return Math.round(m / 1440) + ' hari lalu'; return F.fdate(iso); };
+  F.paras = (txt) => String(txt || '').split(/\n{2,}|\r\n\r\n/).map(x => x.trim()).filter(Boolean);
+  /* teks panjang → paragraf / daftar bernomor (baris pendek berurutan) */
+  F.rich = (txt) => {
+    const lines = String(txt || '').split(/\r?\n/).map(x => x.trim()); const out = []; let list = null;
+    lines.forEach(l => { if (!l) { list = null; return; } const m = l.match(/^(?:[-•*]|\d+[.)])\s+(.*)$/); if (m) { if (!list) { list = []; out.push(list); } list.push(m[1]); } else { list = null; out.push(l); } });
+    if (out.length && out.every(x => typeof x === 'string') && lines.filter(Boolean).length > 1 && lines.filter(Boolean).every(l => l.length < 160)) return '<ul class="rl">' + lines.filter(Boolean).map(l => '<li>' + F.esc(l) + '</li>').join('') + '</ul>';
+    return out.map(x => Array.isArray(x) ? '<ul class="rl">' + x.map(i => '<li>' + F.esc(i) + '</li>').join('') + '</ul>' : '<p>' + F.esc(x) + '</p>').join('');
+  };
+  F.wa = n => { n = String(n || '').replace(/[^0-9]/g, ''); if (!n) return ''; if (n[0] === '0') n = '62' + n.slice(1); return 'https://wa.me/' + n; };
+  F.ig = n => { n = String(n || '').trim().replace(/^@/, ''); if (!n) return ''; return /^https?:/.test(n) ? n : 'https://instagram.com/' + n; };
   document.addEventListener('DOMContentLoaded', () => F.icons());
 })();

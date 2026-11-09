@@ -5,24 +5,33 @@
  *   "Lomba"          : satu baris per lomba (nama, kategori, tipe, aturan, susunan slot)
  *   "Tim"            : satu baris per tim (urutan = seed / urutan undian, grup)
  *   "Match"          : satu baris per pertandingan yang sudah punya skor / jadwal / status
- *   "Pengaturan"     : Kunci | Nilai (judul beranda, pengantar, pengumuman)
+ *   "Pengaturan"     : Kunci | Nilai (identitas event, tanggal, kontak, tentang, pengumuman)
+ *   "Berita"         : berita / pengumuman / hasil untuk portal publik
+ *   "Agenda"         : rundown & jadwal acara (di luar jadwal pertandingan)
  *   "Admin"          : Nama | Username | Password | Role
  *   "Log Perubahan"  : jejak siapa mengubah apa
  *
  * Script Properties yang harus diisi: RPC_SECRET (sama dengan GAS_SECRET di Vercel)
  */
-var SH = { LOMBA: 'Lomba', TIM: 'Tim', MATCH: 'Match', SET: 'Pengaturan', ADMIN: 'Admin', LOG: 'Log Perubahan' };
+var SH = { LOMBA: 'Lomba', TIM: 'Tim', MATCH: 'Match', SET: 'Pengaturan', ADMIN: 'Admin', LOG: 'Log Perubahan', BERITA: 'Berita', AGENDA: 'Agenda' };
 var TZ = 'Asia/Jakarta';
-var VERSI = '1';
+var VERSI = '2';
 var SESI_DETIK = 8 * 60 * 60;
 var MAX_TIM = 64;
 var KATEGORI = ['futsal', 'badminton', 'debat', 'keilmuan', 'seni', 'lainnya'];
 var STATUS_M = ['', 'next', 'live', 'selesai'];
 
-var H_LOMBA = ['ID', 'Nama', 'Kategori', 'Tipe', 'Urut', 'Publik', 'Mode Skor', 'BO', 'Juara 3', 'Sembunyikan BYE', 'Zona', 'Lokasi', 'Keterangan', 'Nama Babak (JSON)', 'Slot (JSON)', 'Grup (JSON)', 'Slot Manual', 'Diubah', 'Diubah Oleh'];
+var H_LOMBA = ['ID', 'Nama', 'Kategori', 'Tipe', 'Urut', 'Publik', 'Mode Skor', 'BO', 'Juara 3', 'Sembunyikan BYE', 'Zona', 'Lokasi', 'Keterangan', 'Nama Babak (JSON)', 'Slot (JSON)', 'Grup (JSON)', 'Slot Manual', 'Diubah', 'Diubah Oleh', 'Tema', 'Deskripsi', 'Juknis', 'Hadiah', 'Biaya', 'Kontak', 'Daftar URL', 'Tgl Lomba'];
 var H_TIM = ['ID Lomba', 'No', 'ID Tim', 'Nama Tim', 'Main', 'Grup'];
 var H_MATCH = ['ID Lomba', 'Kunci', 'Skor A', 'Skor B', 'Penalti A', 'Penalti B', 'BO', 'Tanggal', 'Jam', 'Status', 'Pemenang Paksa', 'Nama Babak', 'Lokasi'];
-var DEF_SET = [['judul', 'Bagan\nMD FEST 2026'], ['subjudul', 'Lihat bagan, jadwal, dan hasil semua lomba. Ketuk lomba untuk membuka bagannya.'], ['pengumuman', '']];
+var H_BERITA = ['ID', 'Judul', 'Ringkas', 'Isi', 'Kategori', 'Tanggal', 'Pin', 'Publik', 'Lomba', 'Diubah'];
+var H_AGENDA = ['ID', 'Judul', 'Tanggal', 'Jam', 'Jam Selesai', 'Lokasi', 'Keterangan', 'Lomba', 'Publik', 'Diubah'];
+var TEMA = ['', 'emas', 'tembaga', 'maroon', 'zamrud', 'safir', 'ungu', 'teal', 'cokelat'];
+var KAT_BERITA = ['pengumuman', 'berita', 'hasil', 'info'];
+// kunci pengaturan yang boleh diubah dari panel (nilai bawaan di sini)
+var DEF_SET = [['judul', 'MD FEST 2026'], ['subjudul', 'Manajemen Dakwah Festival'], ['pengumuman', ''], ['tagline', ''], ['tglMulai', ''], ['tglSelesai', ''], ['lokasi', ''],
+  ['tentang', ''], ['wa', ''], ['instagram', ''], ['email', ''], ['daftarUrl', ''], ['sponsor', '']];
+var SET_MAX = { tentang: 4000, sponsor: 600, subjudul: 300, tagline: 200 };
 
 function setupAwal() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -33,6 +42,9 @@ function setupAwal() {
   var s = ensure_(ss, SH.SET, ['Kunci', 'Nilai']);
   if (s.getLastRow() < 2) s.getRange(2, 1, DEF_SET.length, 2).setValues(DEF_SET);
   s.getRange('B:B').setNumberFormat('@');
+  pastikanKolom_(ensure_(ss, SH.LOMBA, H_LOMBA), H_LOMBA);
+  var b = ensure_(ss, SH.BERITA, H_BERITA); b.getRange('A:J').setNumberFormat('@');
+  var g = ensure_(ss, SH.AGENDA, H_AGENDA); g.getRange('A:J').setNumberFormat('@');
   var a = ensure_(ss, SH.ADMIN, ['Nama', 'Username', 'Password', 'Role']);
   if (a.getLastRow() < 2) a.appendRow(['Panitia', 'admin', 'ganti-password-ini', 'Admin']);
   ensure_(ss, SH.LOG, ['Waktu', 'Admin', 'ID Lomba', 'Aksi', 'Detail']);
@@ -47,6 +59,18 @@ function ensure_(ss, name, head) {
     sh.setFrozenRows(1);
   }
   return sh;
+}
+
+// menambah judul kolom baru di sheet lama (tanpa mengubah data yang sudah ada)
+function pastikanKolom_(sh, head) {
+  var n = Math.max(sh.getLastColumn(), 1), cur = sh.getRange(1, 1, 1, n).getValues()[0].map(str_);
+  head.forEach(function (h) {
+    if (cur.indexOf(h) >= 0) return;
+    var col = cur.length + 1;
+    sh.getRange(1, col).setValue(h).setFontWeight('bold').setBackground('#8a6118').setFontColor('#ffffff');
+    cur.push(h);
+  });
+  return cur;
 }
 
 /* ---------- util ---------- */
@@ -71,6 +95,9 @@ function num_(x, d) { var n = parseInt(x, 10); return isNaN(n) ? (d || 0) : n; }
 function bool_(x, d) { var s = str_(x).toUpperCase(); if (s === '') return !!d; return s === 'TRUE' || s === 'YA' || s === '1'; }
 function wib_() { return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'); }
 function tgl_(v) { return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd') : str_(v); }
+function tglJam_(v) { return v instanceof Date ? Utilities.formatDate(v, TZ, "yyyy-MM-dd'T'HH:mm") : str_(v); }
+function tek_(x, max) { return String(x === null || x === undefined ? '' : x).replace(/\r/g, '').trim().substring(0, max); }
+function id_(x, pre) { var s = str_(x).toLowerCase().replace(/[^a-z0-9\-]/g, '').substring(0, 40); return s || (pre + Utilities.getUuid().substring(0, 8)); }
 function jam_(v) { return v instanceof Date ? Utilities.formatDate(v, TZ, 'HH:mm') : str_(v); }
 function json_(s, d) { try { var v = JSON.parse(s); return v === null || v === undefined ? d : v; } catch (e) { return d; } }
 function kunci_(fn) {
@@ -85,7 +112,8 @@ function catatLog_(adm, id, aksi, detail) {
 function pengaturan_() {
   var o = {};
   DEF_SET.forEach(function (p) { o[p[0]] = p[1]; });
-  try { rows_(SH.SET).forEach(function (r) { if (str_(r['Kunci'])) o[str_(r['Kunci'])] = String(r['Nilai'] === null ? '' : r['Nilai']).replace(/\r/g, ''); }); } catch (e) {}
+  var ok = {}; DEF_SET.forEach(function (p) { ok[p[0]] = 1; });
+  try { rows_(SH.SET).forEach(function (r) { var k = str_(r['Kunci']); if (k && ok[k]) o[k] = String(r['Nilai'] === null ? '' : r['Nilai']).replace(/\r/g, ''); }); } catch (e) {}
   return o;
 }
 
@@ -104,7 +132,8 @@ function semuaLomba_() {
     var id = str_(r['ID']), t = (tim[id] || []).sort(function (a, b) { return a.no - b.no; });
     return {
       id: id, nama: str_(r['Nama']), kategori: str_(r['Kategori']) || 'lainnya', tipe: str_(r['Tipe']) === 'grup' ? 'grup' : 'bagan', urut: num_(r['Urut']), publik: bool_(r['Publik'], true),
-      cfg: { mode: str_(r['Mode Skor']) === 'bo' ? 'bo' : 'skor', bo: num_(r['BO'], 1) || 1, juara3: bool_(r['Juara 3'], true), sembunyiBye: bool_(r['Sembunyikan BYE'], true), zona: str_(r['Zona']) || 'WIB', lokasi: str_(r['Lokasi']), subjudul: str_(r['Keterangan']), namaBabak: json_(r['Nama Babak (JSON)'], []), manual: bool_(r['Slot Manual'], false) },
+      cfg: { mode: str_(r['Mode Skor']) === 'bo' ? 'bo' : 'skor', bo: num_(r['BO'], 1) || 1, juara3: bool_(r['Juara 3'], true), sembunyiBye: bool_(r['Sembunyikan BYE'], true), zona: str_(r['Zona']) || 'WIB', lokasi: str_(r['Lokasi']), subjudul: str_(r['Keterangan']), namaBabak: json_(r['Nama Babak (JSON)'], []), manual: bool_(r['Slot Manual'], false),
+        tema: TEMA.indexOf(str_(r['Tema'])) >= 0 ? str_(r['Tema']) : '', deskripsi: tek_(r['Deskripsi'], 1200), juknis: tek_(r['Juknis'], 6000), hadiah: tek_(r['Hadiah'], 3000), biaya: tek_(r['Biaya'], 200), kontak: tek_(r['Kontak'], 300), daftarUrl: tek_(r['Daftar URL'], 300), tglLomba: /^\d{4}-\d{2}-\d{2}$/.test(tgl_(r['Tgl Lomba'])) ? tgl_(r['Tgl Lomba']) : '' },
       tim: t.map(function (x) { return { id: x.id, nama: x.nama, main: x.main, grup: x.grup }; }),
       slot: json_(r['Slot (JSON)'], []), grup: json_(r['Grup (JSON)'], []), match: match[id] || {}, diubah: str_(r['Diubah'])
     };
@@ -113,15 +142,34 @@ function semuaLomba_() {
   return out;
 }
 
+/* ---------- berita & agenda ---------- */
+function semuaBerita_() {
+  var out = rows_(SH.BERITA).filter(function (r) { return str_(r['ID']); }).map(function (r) {
+    var k = str_(r['Kategori']);
+    return { id: str_(r['ID']), judul: str_(r['Judul']), ringkas: tek_(r['Ringkas'], 400), isi: tek_(r['Isi'], 8000), kategori: KAT_BERITA.indexOf(k) >= 0 ? k : 'berita', tgl: tglJam_(r['Tanggal']), pin: bool_(r['Pin'], false), publik: bool_(r['Publik'], true), lomba: str_(r['Lomba']) };
+  });
+  out.sort(function (a, b) { return (b.pin ? 1 : 0) - (a.pin ? 1 : 0) || (a.tgl < b.tgl ? 1 : a.tgl > b.tgl ? -1 : 0); });
+  return out;
+}
+function semuaAgenda_() {
+  var out = rows_(SH.AGENDA).filter(function (r) { return str_(r['ID']); }).map(function (r) {
+    return { id: str_(r['ID']), judul: str_(r['Judul']), tgl: tgl_(r['Tanggal']), jam: jam_(r['Jam']), jamSelesai: jam_(r['Jam Selesai']), lokasi: str_(r['Lokasi']), ket: tek_(r['Keterangan'], 600), lomba: str_(r['Lomba']), publik: bool_(r['Publik'], true) };
+  });
+  out.sort(function (a, b) { var x = a.tgl + ' ' + a.jam, y = b.tgl + ' ' + b.jam; return x < y ? -1 : x > y ? 1 : 0; });
+  return out;
+}
+function safe_(fn, d) { try { return fn(); } catch (e) { return d; } }  // sheet Berita/Agenda belum dibuat -> daftar kosong
+
 /* ---------- publik ---------- */
 function getPublik() {
   var cache = CacheService.getScriptCache(), c = cache.get('pub');
   if (c) { try { return JSON.parse(c); } catch (e) {} }
-  var p = pengaturan_();
   var d = {
     versi: VERSI,
-    pengaturan: { judul: p.judul, subjudul: p.subjudul, pengumuman: p.pengumuman },
-    lomba: semuaLomba_().filter(function (l) { return l.publik; })
+    pengaturan: pengaturan_(),
+    lomba: semuaLomba_().filter(function (l) { return l.publik; }),
+    berita: safe_(semuaBerita_, []).filter(function (x) { return x.publik; }),
+    agenda: safe_(semuaAgenda_, []).filter(function (x) { return x.publik; })
   };
   try { var s = JSON.stringify(d); if (s.length < 90000) cache.put('pub', s, 20); } catch (e) {}
   return d;
@@ -156,7 +204,7 @@ function auth_(token) {
 /* ---------- admin: data ---------- */
 function getDataAdmin(token) {
   auth_(token);
-  return { versi: VERSI, pengaturan: pengaturan_(), lomba: semuaLomba_() };
+  return { versi: VERSI, pengaturan: pengaturan_(), lomba: semuaLomba_(), berita: safe_(semuaBerita_, []), agenda: safe_(semuaAgenda_, []) };
 }
 
 // validasi + rapikan satu lomba dari browser
@@ -178,7 +226,8 @@ function bersihLomba_(d) {
   var nb = (Array.isArray(c.namaBabak) ? c.namaBabak : []).slice(0, 8).map(function (x) { return str_(x).substring(0, 40); });
   var L = {
     id: id, nama: nama, kategori: kat, tipe: tipe, urut: num_(d.urut), publik: d.publik !== false,
-    cfg: { mode: c.mode === 'bo' ? 'bo' : 'skor', bo: [1, 3, 5, 7].indexOf(num_(c.bo, 1)) >= 0 ? num_(c.bo, 1) : 1, juara3: c.juara3 !== false, sembunyiBye: c.sembunyiBye !== false, zona: ['WIB', 'WITA', 'WIT'].indexOf(c.zona) >= 0 ? c.zona : 'WIB', lokasi: str_(c.lokasi).substring(0, 80), subjudul: str_(c.subjudul).substring(0, 120), namaBabak: nb, manual: !!c.manual },
+    cfg: { mode: c.mode === 'bo' ? 'bo' : 'skor', bo: [1, 3, 5, 7].indexOf(num_(c.bo, 1)) >= 0 ? num_(c.bo, 1) : 1, juara3: c.juara3 !== false, sembunyiBye: c.sembunyiBye !== false, zona: ['WIB', 'WITA', 'WIT'].indexOf(c.zona) >= 0 ? c.zona : 'WIB', lokasi: str_(c.lokasi).substring(0, 80), subjudul: str_(c.subjudul).substring(0, 120), namaBabak: nb, manual: !!c.manual,
+      tema: TEMA.indexOf(str_(c.tema)) >= 0 ? str_(c.tema) : '', deskripsi: tek_(c.deskripsi, 1200), juknis: tek_(c.juknis, 6000), hadiah: tek_(c.hadiah, 3000), biaya: tek_(c.biaya, 200), kontak: tek_(c.kontak, 300), daftarUrl: tek_(c.daftarUrl, 300), tglLomba: /^\d{4}-\d{2}-\d{2}$/.test(str_(c.tglLomba)) ? str_(c.tglLomba) : '' },
     tim: tim, slot: slot, grup: grup, match: {}
   };
   var m = d.match && typeof d.match === 'object' ? d.match : {};
@@ -211,11 +260,14 @@ function ganti_(nama, head, id, baru) {
   }
 }
 function simpan_(adm, L) {
-  var sh = sheet_(SH.LOMBA), v = sh.getDataRange().getValues(), row = -1, urut = 0;
+  var sh = sheet_(SH.LOMBA);
+  if (sh.getLastColumn() < H_LOMBA.length) pastikanKolom_(sh, H_LOMBA);
+  var v = sh.getDataRange().getValues(), row = -1, urut = 0;
   for (var i = 1; i < v.length; i++) { if (str_(v[i][0]) === L.id) row = i + 1; urut = Math.max(urut, num_(v[i][4])); }
   if (!L.urut) L.urut = row > 0 ? num_(v[row - 1][4]) : urut + 1;
   var data = [L.id, L.nama, L.kategori, L.tipe, L.urut, L.publik ? 'TRUE' : 'FALSE', L.cfg.mode, L.cfg.bo, L.cfg.juara3 ? 'TRUE' : 'FALSE', L.cfg.sembunyiBye ? 'TRUE' : 'FALSE', L.cfg.zona, L.cfg.lokasi, L.cfg.subjudul,
-    JSON.stringify(L.cfg.namaBabak), JSON.stringify(L.slot), JSON.stringify(L.grup), L.cfg.manual ? 'TRUE' : 'FALSE', wib_(), adm];
+    JSON.stringify(L.cfg.namaBabak), JSON.stringify(L.slot), JSON.stringify(L.grup), L.cfg.manual ? 'TRUE' : 'FALSE', wib_(), adm,
+    L.cfg.tema, L.cfg.deskripsi, L.cfg.juknis, L.cfg.hadiah, L.cfg.biaya, L.cfg.kontak, L.cfg.daftarUrl, L.cfg.tglLomba];
   if (row < 0) { sh.appendRow(data); row = sh.getLastRow(); } else sh.getRange(row, 1, 1, data.length).setValues([data]);
   ganti_(SH.TIM, H_TIM, L.id, L.tim.map(function (t, i) { return [L.id, i + 1, t.id, t.nama, t.main ? 'TRUE' : 'FALSE', t.grup < 0 ? '' : t.grup]; }));
   ganti_(SH.MATCH, H_MATCH, L.id, Object.keys(L.match).map(function (k) { return barisMatch_(L.id, k, L.match[k]); }));
@@ -266,37 +318,108 @@ function urutLomba(token, ids) {
     bersihCache_(); return true;
   });
 }
-function imporLomba(token, list) {
+// payload: array lomba (format lama) ATAU { lomba:[], pengaturan:{}, berita:[], agenda:[] } (format baru / data contoh)
+function imporLomba(token, payload) {
   var s = auth_(token);
-  if (!Array.isArray(list) || !list.length) throw new Error('Tidak ada lomba untuk diimpor.');
+  var list = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.lomba) ? payload.lomba : []);
+  var ekstra = !Array.isArray(payload) && payload && typeof payload === 'object' ? payload : {};
+  if (!list.length && !(ekstra.berita || ekstra.agenda || ekstra.pengaturan)) throw new Error('Tidak ada lomba untuk diimpor.');
   if (list.length > 30) throw new Error('Maksimal 30 lomba sekali impor.');
   var bersih = list.map(bersihLomba_);
+  var berita = (Array.isArray(ekstra.berita) ? ekstra.berita : []).slice(0, 50).map(bersihBerita_);
+  var agenda = (Array.isArray(ekstra.agenda) ? ekstra.agenda : []).slice(0, 100).map(bersihAgenda_);
   return kunci_(function () {
     bersih.forEach(function (L) { simpan_(s.nama || s.username, L); });
-    bersihCache_(); catatLog_(s.username, '-', 'impor', bersih.length + ' lomba');
+    berita.forEach(function (x) { tulisBaris_(SH.BERITA, H_BERITA, barisBerita_(x)); });
+    agenda.forEach(function (x) { tulisBaris_(SH.AGENDA, H_AGENDA, barisAgenda_(x)); });
+    if (ekstra.pengaturan && typeof ekstra.pengaturan === 'object') {   // hanya mengisi kunci yang masih kosong
+      var cur = pengaturan_(), o = {};
+      Object.keys(ekstra.pengaturan).forEach(function (k) { if (!str_(cur[k])) o[k] = ekstra.pengaturan[k]; });
+      tulisPengaturan_(o);
+    }
+    bersihCache_(); catatLog_(s.username, '-', 'impor', bersih.length + ' lomba, ' + berita.length + ' berita, ' + agenda.length + ' agenda');
     return bersih.length;
+  });
+}
+function tulisPengaturan_(o) {
+  var sh = sheet_(SH.SET), v = sh.getDataRange().getValues(), ok = {};
+  DEF_SET.forEach(function (p) { ok[p[0]] = 1; });
+  Object.keys(o).forEach(function (k) {
+    if (!ok[k] || o[k] === undefined) return;
+    var val = tek_(o[k], SET_MAX[k] || 300), row = -1;
+    for (var i = 1; i < v.length; i++) if (str_(v[i][0]) === k) { row = i + 1; break; }
+    if (row < 0) { sh.appendRow([k, val]); sh.getRange(sh.getLastRow(), 2).setNumberFormat('@').setValue(val); v.push([k, val]); } else sh.getRange(row, 2).setNumberFormat('@').setValue(val);
   });
 }
 function simpanPengaturan(token, o) {
   var s = auth_(token);
-  var ok = ['judul', 'subjudul', 'pengumuman'];
+  if (!o || typeof o !== 'object') throw new Error('Data pengaturan tidak valid.');
   return kunci_(function () {
-    var sh = sheet_(SH.SET), v = sh.getDataRange().getValues();
-    ok.forEach(function (k) {
-      if (o[k] === undefined) return;
-      var val = str_(o[k]).substring(0, 300), row = -1;
-      for (var i = 1; i < v.length; i++) if (str_(v[i][0]) === k) { row = i + 1; break; }
-      if (row < 0) { sh.appendRow([k, val]); v.push([k, val]); } else sh.getRange(row, 2).setNumberFormat('@').setValue(val);
-    });
+    tulisPengaturan_(o);
     bersihCache_(); catatLog_(s.username, '-', 'pengaturan', '');
     return pengaturan_();
   });
 }
 
+/* ---------- admin: berita & agenda ---------- */
+function bersihBerita_(d) {
+  if (!d || typeof d !== 'object') throw new Error('Data berita tidak valid.');
+  var judul = tek_(d.judul, 140); if (!judul) throw new Error('Judul berita wajib diisi.');
+  var tgl = str_(d.tgl);
+  if (!/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(tgl)) tgl = Utilities.formatDate(new Date(), TZ, "yyyy-MM-dd'T'HH:mm");
+  if (tgl.length === 10) tgl += 'T00:00';
+  return { id: id_(d.id, 'b'), judul: judul, ringkas: tek_(d.ringkas, 400), isi: tek_(d.isi, 8000), kategori: KAT_BERITA.indexOf(d.kategori) >= 0 ? d.kategori : 'berita', tgl: tgl, pin: d.pin === true || d.pin === 'TRUE', publik: d.publik !== false && d.publik !== 'FALSE', lomba: str_(d.lomba).substring(0, 60) };
+}
+function barisBerita_(x) { return [x.id, x.judul, x.ringkas, x.isi, x.kategori, x.tgl, x.pin ? 'TRUE' : 'FALSE', x.publik ? 'TRUE' : 'FALSE', x.lomba, wib_()]; }
+function bersihAgenda_(d) {
+  if (!d || typeof d !== 'object') throw new Error('Data agenda tidak valid.');
+  var judul = tek_(d.judul, 140); if (!judul) throw new Error('Judul agenda wajib diisi.');
+  var tgl = str_(d.tgl); if (!/^\d{4}-\d{2}-\d{2}$/.test(tgl)) throw new Error('Tanggal agenda wajib diisi.');
+  var j1 = str_(d.jam), j2 = str_(d.jamSelesai);
+  return { id: id_(d.id, 'a'), judul: judul, tgl: tgl, jam: /^\d{2}:\d{2}$/.test(j1) ? j1 : '', jamSelesai: /^\d{2}:\d{2}$/.test(j2) ? j2 : '', lokasi: tek_(d.lokasi, 100), ket: tek_(d.ket, 600), lomba: str_(d.lomba).substring(0, 60), publik: d.publik !== false && d.publik !== 'FALSE' };
+}
+function barisAgenda_(x) { return [x.id, x.judul, x.tgl, x.jam, x.jamSelesai, x.lokasi, x.ket, x.lomba, x.publik ? 'TRUE' : 'FALSE', wib_()]; }
+// tulis (atau timpa) satu baris berdasarkan kolom pertama (ID)
+function tulisBaris_(nama, head, baris) {
+  var sh = sheet_(nama), v = sh.getDataRange().getValues(), row = -1;
+  for (var i = 1; i < v.length; i++) if (str_(v[i][0]) === baris[0]) { row = i + 1; break; }
+  if (row < 0) row = Math.max(sh.getLastRow(), 1) + 1;
+  sh.getRange(row, 1, 1, head.length).setNumberFormat('@').setValues([baris]);
+}
+function hapusBaris_(nama, id) {
+  var sh = sheet_(nama), v = sh.getDataRange().getValues();
+  for (var i = v.length - 1; i >= 1; i--) if (str_(v[i][0]) === id) sh.deleteRow(i + 1);
+}
+function simpanBerita(token, d) {
+  var s = auth_(token), x = bersihBerita_(d);
+  return kunci_(function () {
+    tulisBaris_(SH.BERITA, H_BERITA, barisBerita_(x)); bersihCache_();
+    catatLog_(s.username, x.id, 'simpan berita', x.judul);
+    return x;
+  });
+}
+function hapusBerita(token, id) {
+  var s = auth_(token); id = str_(id);
+  return kunci_(function () { hapusBaris_(SH.BERITA, id); bersihCache_(); catatLog_(s.username, id, 'hapus berita', ''); return true; });
+}
+function simpanAgenda(token, d) {
+  var s = auth_(token), x = bersihAgenda_(d);
+  return kunci_(function () {
+    tulisBaris_(SH.AGENDA, H_AGENDA, barisAgenda_(x)); bersihCache_();
+    catatLog_(s.username, x.id, 'simpan agenda', x.judul);
+    return x;
+  });
+}
+function hapusAgenda(token, id) {
+  var s = auth_(token); id = str_(id);
+  return kunci_(function () { hapusBaris_(SH.AGENDA, id); bersihCache_(); catatLog_(s.username, id, 'hapus agenda', ''); return true; });
+}
+
 /* ---------- pintu masuk dari Vercel (/api/rpc) ---------- */
 var RPC = {
   login: login, cekSesi: cekSesi, logout: logout, getPublik: getPublik,
-  getDataAdmin: getDataAdmin, simpanLomba: simpanLomba, simpanMatch: simpanMatch, hapusLomba: hapusLomba, urutLomba: urutLomba, imporLomba: imporLomba, simpanPengaturan: simpanPengaturan
+  getDataAdmin: getDataAdmin, simpanLomba: simpanLomba, simpanMatch: simpanMatch, hapusLomba: hapusLomba, urutLomba: urutLomba, imporLomba: imporLomba, simpanPengaturan: simpanPengaturan,
+  simpanBerita: simpanBerita, hapusBerita: hapusBerita, simpanAgenda: simpanAgenda, hapusAgenda: hapusAgenda
 };
 function doPost(e) {
   var res;

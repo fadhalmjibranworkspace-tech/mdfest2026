@@ -1,4 +1,4 @@
-// Konversi 8 drawing lama (bagan OBS) -> public/seed.json (format baru). Jalankan: node tools/make-seed.js <folder public lama>
+// Konversi 8 drawing lama (bagan OBS) -> public/seed.json (format baru: {lomba,pengaturan,berita,agenda}). Jalankan: node tools/make-seed.js <folder public lama>
 const fs = require('fs'), vm = require('vm'), path = require('path');
 const root = process.argv[2];
 const ctx = { window: {}, console }; ctx.window = ctx; vm.createContext(ctx);
@@ -27,5 +27,5 @@ list.forEach((it, idx) => {
     L.slot = slot; out.push(L);
   }
 });
-fs.writeFileSync(path.join(__dirname, '../public/seed.json'), JSON.stringify(out));
+fs.writeFileSync(path.join(__dirname, '../public/seed.json'), JSON.stringify(require('./seed-extra.js').build(out)));  // + pengaturan, berita, agenda contoh
 out.forEach(L => { let s = ''; if (L.tipe === 'bagan') { const C = BG.compute(L); s = ' babak=' + C.names.join('/') + ' real=' + C.total; } console.log(L.nama, L.tipe, L.kategori, L.tim.length + ' tim' + s); });
